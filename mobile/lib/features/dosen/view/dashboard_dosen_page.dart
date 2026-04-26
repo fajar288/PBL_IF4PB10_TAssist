@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../lecturer_selection/view/mentoring_request_store.dart';
+import '../../../app/app.dart';
 
 class DashboardDosenPage extends StatefulWidget {
   const DashboardDosenPage({super.key});
@@ -28,39 +30,27 @@ class _DashboardDosenPageState extends State<DashboardDosenPage> {
     ),
   ];
 
-  void _showUnavailableFeature(String featureName) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Fitur $featureName belum tersedia.'),
-      ),
-    );
+  void _logout() {
+    Navigator.pushNamedAndRemoveUntil(context, TAssistApp.loginRoute, (route) => false);
   }
 
   void _onNavTap(int index) {
-    setState(() {
-      selectedIndex = index;
-    });
-
-    if (index == 1) {
-      _showUnavailableFeature('schedule');
-    } else if (index == 2) {
-      _showUnavailableFeature('students');
-    }
+    setState(() => selectedIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF363C45),
+      // Mengubah Background menjadi terang sesuai dashboard mahasiswa
+      backgroundColor: const Color(0xFFEEF2F6),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
           child: Column(
             children: [
               _buildHeader(),
               const SizedBox(height: 24),
               _buildCounselingCard(),
-              const SizedBox(height: 18),
               const Spacer(),
               _buildBottomNav(),
             ],
@@ -80,43 +70,26 @@ class _DashboardDosenPageState extends State<DashboardDosenPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Hi, Aruna Fajar!',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    height: 1.1,
-                  ),
-                ),
+                Text('Hi, Dr. Lecturer!',
+                    style: TextStyle(color: Color(0xFF2D3238), fontSize: 24, fontWeight: FontWeight.w800, height: 1.1)),
                 SizedBox(height: 4),
-                Text(
-                  'Welcome to TAssist',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
+                Text('Welcome to TAssist Dosen',
+                    style: TextStyle(color: Color(0xFF5A6269), fontSize: 14, fontWeight: FontWeight.w400)),
               ],
             ),
           ),
         ),
-        Container(
-          width: 66,
-          height: 66,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white.withOpacity(0.9),
-              width: 2,
+        GestureDetector(
+          onTap: _logout,
+          child: Container(
+            width: 66, height: 66,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFF0D4AA3), width: 2),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 2))],
             ),
-            color: Colors.white,
-          ),
-          child: const Icon(
-            Icons.person,
-            size: 34,
-            color: Color(0xFF0D4AA3),
+            child: const Icon(Icons.person, size: 34, color: Color(0xFF0D4AA3)),
           ),
         ),
       ],
@@ -126,39 +99,48 @@ class _DashboardDosenPageState extends State<DashboardDosenPage> {
   Widget _buildCounselingCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 18, 14, 12),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFD9DDE2),
-        borderRadius: BorderRadius.circular(18),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withOpacity(0.05)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: const [
-              Icon(
-                Icons.mail_rounded,
-                color: Color(0xFF111111),
-                size: 22,
-              ),
+              Icon(Icons.mail_rounded, color: Color(0xFF0D4AA3), size: 24),
               SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Counseling Request',
-                  style: TextStyle(
-                    color: Color(0xFF111111),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+              Text('Counseling Request',
+                  style: TextStyle(color: Color(0xFF111111), fontSize: 18, fontWeight: FontWeight.w800)),
             ],
           ),
-          const SizedBox(height: 16),
-          for (int i = 0; i < dummyRequests.length; i++) ...[
-            _RequestCard(request: dummyRequests[i]),
-            if (i != dummyRequests.length - 1) const SizedBox(height: 14),
-          ],
+          const SizedBox(height: 20),
+          // Memantau apakah sudah disetujui
+          ValueListenableBuilder<bool>(
+            valueListenable: MentoringRequestStore.isApproved,
+            builder: (context, approved, _) {
+              if (approved) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Text("All requests handled ✅", style: TextStyle(color: Colors.grey)),
+                );
+              }
+              return Column(
+                children: dummyRequests.map((req) => _RequestCard(
+                  request: req,
+                  onAccept: () {
+                    // Logika penyambungan: Klik accept di dosen, dashboard mahasiswa berubah!
+                    MentoringRequestStore.approve();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Mahasiswa Berhasil Disetujui!')),
+                    );
+                  },
+                )).toList(),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -167,41 +149,44 @@ class _DashboardDosenPageState extends State<DashboardDosenPage> {
   Widget _buildBottomNav() {
     return Container(
       height: 72,
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFBFC5CB).withOpacity(0.72),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          Expanded(
-            child: _NavItem(
-              isSelected: selectedIndex == 0,
-              icon: Icons.home_rounded,
-              label: 'home',
-              onTap: () => _onNavTap(0),
-            ),
-          ),
-          Expanded(
-            child: _NavItem(
-              isSelected: selectedIndex == 1,
-              icon: Icons.more_time_rounded,
-              label: selectedIndex == 1 ? 'schedule' : '',
-              iconSize: 25,
-              onTap: () => _onNavTap(1),
-            ),
-          ),
-          Expanded(
-            child: _NavItem(
-              isSelected: selectedIndex == 2,
-              icon: Icons.groups_rounded,
-              label: selectedIndex == 2 ? 'students' : '',
-              iconSize: 25,
-              onTap: () => _onNavTap(2),
-            ),
-          ),
+          _buildNavItem(0, Icons.home_rounded, 'home'),
+          _buildNavItem(1, Icons.more_time_rounded, 'schedule'),
+          _buildNavItem(2, Icons.groups_rounded, 'students'),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    bool isSelected = selectedIndex == index;
+    return GestureDetector(
+      onTap: () => _onNavTap(index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF0D4AA3) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: isSelected ? Colors.white : const Color(0xFF5A6269)),
+            if (isSelected) ...[
+              const SizedBox(width: 8),
+              Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ]
+          ],
+        ),
       ),
     );
   }
@@ -209,119 +194,48 @@ class _DashboardDosenPageState extends State<DashboardDosenPage> {
 
 class _RequestCard extends StatelessWidget {
   final _CounselingRequest request;
+  final VoidCallback onAccept;
 
-  const _RequestCard({required this.request});
+  const _RequestCard({required this.request, required this.onAccept});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 10,
-      ),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFF0D4AA3),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
           CircleAvatar(
-            radius: 20,
             backgroundColor: Colors.white,
-            child: Text(
-              request.avatarText,
-              style: const TextStyle(
-                color: Color(0xFF0D4AA3),
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
+            child: Text(request.avatarText, style: const TextStyle(color: Color(0xFF0D4AA3), fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(request.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(request.status, style: const TextStyle(color: Color(0xFFFFC107), fontSize: 12, fontWeight: FontWeight.bold)),
+              ],
             ),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: '${request.name}\n',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  TextSpan(
-                    text: request.status,
-                    style: const TextStyle(
-                      color: Color(0xFFFFC107),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
+          // Tombol Accept untuk simulasi approval
+          ElevatedButton(
+            onPressed: onAccept,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF0D4AA3),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
+            child: const Text('Accept', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  final bool isSelected;
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-  final double iconSize;
-
-  const _NavItem({
-    required this.isSelected,
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.iconSize = 25,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    const activeColor = Color(0xFF0D4AA3);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Center(
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeInOut,
-          width: isSelected ? 122 : 72,
-          height: 52,
-          decoration: BoxDecoration(
-            color: isSelected ? activeColor : Colors.transparent,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: iconSize,
-                color: isSelected ? Colors.white : Colors.black,
-              ),
-              if (label.isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -331,10 +245,5 @@ class _CounselingRequest {
   final String name;
   final String status;
   final String avatarText;
-
-  const _CounselingRequest({
-    required this.name,
-    required this.status,
-    required this.avatarText,
-  });
+  const _CounselingRequest({required this.name, required this.status, required this.avatarText});
 }

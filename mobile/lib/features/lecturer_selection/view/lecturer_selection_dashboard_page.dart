@@ -3,6 +3,7 @@ import '../../../app/app.dart';
 import 'lecturers_page.dart';
 import 'mentoring_request_store.dart';
 import 'lecturer_detail_page.dart';
+import '../../main_mahasiswa/navbar_mahasiswa.dart'; // Import navbar mahasiswa
 
 class LecturerSelectionDashboardPage extends StatefulWidget {
   const LecturerSelectionDashboardPage({super.key});
@@ -90,6 +91,12 @@ class _LecturerSelectionDashboardPageState
             ),
           ),
         ),
+      ),
+      bottomNavigationBar: NavbarMahasiswa(
+        currentIndex: 0,
+        onTap: (index) {
+          // Navigasi bisa dihandle di sini jika perlu
+        },
       ),
     );
   }
