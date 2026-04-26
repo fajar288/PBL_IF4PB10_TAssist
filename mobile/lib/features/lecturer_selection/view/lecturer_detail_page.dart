@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'lecturers_page.dart';
+import 'mentoring_request_store.dart';
 import '../../main_mahasiswa/navbar_mahasiswa.dart';
 
 class LecturerDetailPage extends StatelessWidget {
@@ -23,12 +24,11 @@ class LecturerDetailPage extends StatelessWidget {
             const SizedBox(height: 24),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: _buildDetailCard(),
+              child: _buildDetailCard(context),
             ),
           ],
         ),
       ),
-      // Menambahkan Navbar agar konsisten muncul di seluruh alur mahasiswa
       bottomNavigationBar: NavbarMahasiswa(
         currentIndex: 0,
         onTap: (index) {
@@ -60,7 +60,7 @@ class LecturerDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailCard() {
+  Widget _buildDetailCard(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -97,17 +97,75 @@ class LecturerDetailPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0D4AA3),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('Request Counseling', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            ),
+          
+          // Memantau daftar request di Store
+          ValueListenableBuilder<List<RequestedLecturer>>(
+            valueListenable: MentoringRequestStore.requests,
+            builder: (context, allRequests, _) {
+              // Cek apakah ID dosen ini ada di dalam list request
+              bool isThisLecturerRequested = MentoringRequestStore.isRequested(lecturer.id);
+
+              if (isThisLecturerRequested) {
+                return Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Container(
+                        height: 52,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0D4AA3).withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text('Requested', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: SizedBox(
+                        height: 52,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            // Cancel berdasarkan ID spesifik
+                            MentoringRequestStore.cancel(lecturer.id);
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.redAccent, width: 1.5),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text('Cancel', style: TextStyle(color: Colors.redAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      MentoringRequestStore.request(
+                        RequestedLecturer(
+                          id: lecturer.id,
+                          name: lecturer.name,
+                          major: lecturer.department.label,
+                          imageUrl: lecturer.imageUrl,
+                          nid: lecturer.nid,
+                          guidanceQuotaLeft: lecturer.quotaLeft,
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0D4AA3),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Request Counseling', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                );
+              }
+            },
           ),
         ],
       ),

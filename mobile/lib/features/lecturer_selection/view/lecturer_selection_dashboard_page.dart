@@ -16,38 +16,12 @@ class _LecturerSelectionDashboardPageState
     extends State<LecturerSelectionDashboardPage> {
   
   final List<LecturerCategory> categories = const [
-    LecturerCategory(
-      title: 'Informatics Lecturers',
-      imageUrl: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80',
-    ),
-    LecturerCategory(
-      title: 'Business Lecturers',
-      imageUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80',
-    ),
-    LecturerCategory(
-      title: 'Electrical Lecturers',
-      imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80',
-    ),
-    LecturerCategory(
-      title: 'Mechanical Lecturers',
-      imageUrl: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=1200&q=80',
-    ),
-    LecturerCategory(
-      title: 'Arts and Cultural Lecturers',
-      imageUrl: 'https://images.unsplash.com/photo-1518998053901-5348d3961a04?auto=format&fit=crop&w=1200&q=80',
-    ),
+    LecturerCategory(title: 'Informatics Lecturers', imageUrl: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80'),
+    LecturerCategory(title: 'Business Lecturers', imageUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80'),
+    LecturerCategory(title: 'Electrical Lecturers', imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80'),
+    LecturerCategory(title: 'Mechanical Lecturers', imageUrl: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=1200&q=80'),
+    LecturerCategory(title: 'Arts and Cultural Lecturers', imageUrl: 'https://images.unsplash.com/photo-1518998053901-5348d3961a04?auto=format&fit=crop&w=1200&q=80'),
   ];
-
-  void _openLecturersPage({LecturerDepartment? department}) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => LecturersPage(
-          initialDepartment: department,
-        ),
-      ),
-    );
-  }
 
   void _logout() {
     Navigator.pushNamedAndRemoveUntil(
@@ -55,6 +29,10 @@ class _LecturerSelectionDashboardPageState
       TAssistApp.loginRoute,
       (route) => false,
     );
+  }
+
+  void _openLecturersPage({LecturerDepartment? department}) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => LecturersPage(initialDepartment: department)));
   }
 
   void _openRequestedLecturerDetail(RequestedLecturer request) {
@@ -89,20 +67,27 @@ class _LecturerSelectionDashboardPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 1. Perubahan Background Color ke #EEF2F6
       backgroundColor: const Color(0xFFEEF2F6),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-          child: Column(
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 24),
-              _buildTopCard(),
-              const SizedBox(height: 18),
-              Expanded(child: _buildBottomEmptyCard()),
-              const SizedBox(height: 20),
-            ],
+      extendBody: true, 
+      body: Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: SafeArea(
+            bottom: false, 
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
+              child: Column(
+                children: [
+                  _buildHeader(),
+                  const SizedBox(height: 24),
+                  _buildTopCard(),
+                  const SizedBox(height: 18),
+                  _buildBottomRequestList(),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -119,7 +104,6 @@ class _LecturerSelectionDashboardPageState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 2. Perubahan warna teks agar kontras dengan background terang
                 Text('Hi, Aruna Fajar!', style: TextStyle(color: Color(0xFF2D3238), fontSize: 24, fontWeight: FontWeight.w800, height: 1.1)),
                 SizedBox(height: 4),
                 Text('Welcome to TAssist', style: TextStyle(color: Color(0xFF5A6269), fontSize: 14, fontWeight: FontWeight.w500)),
@@ -133,11 +117,8 @@ class _LecturerSelectionDashboardPageState
             width: 66, height: 66,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              // Border dibuat sedikit lebih gelap agar terlihat di BG terang
               border: Border.all(color: Colors.white, width: 2),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 2))
-              ],
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 2))],
               image: const DecorationImage(
                 image: NetworkImage('https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80'),
                 fit: BoxFit.cover,
@@ -153,18 +134,11 @@ class _LecturerSelectionDashboardPageState
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 20, 14, 12),
-      // 3. Container menjadi putih dengan shadow tipis (Elevation Effect)
       decoration: BoxDecoration(
         color: Colors.white, 
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.black.withOpacity(0.05)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -206,57 +180,63 @@ class _LecturerSelectionDashboardPageState
     );
   }
 
-  Widget _buildBottomEmptyCard() {
-    return ValueListenableBuilder<RequestedLecturer?>(
-      valueListenable: MentoringRequestStore.currentRequest,
-      builder: (context, request, _) {
+  Widget _buildBottomRequestList() {
+    return ValueListenableBuilder<List<RequestedLecturer>>(
+      valueListenable: MentoringRequestStore.requests,
+      builder: (context, requestList, _) {
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.all(14),
-          // 3. Konsistensi style dengan Top Card
           decoration: BoxDecoration(
             color: Colors.white, 
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.black.withOpacity(0.05)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))],
           ),
-          child: request == null
-              ? const Center(child: Text("there’s nothing here...", style: TextStyle(color: Color(0xFF7D848C), fontSize: 16, fontWeight: FontWeight.w500)))
-              : _buildRequestItem(request),
+          child: requestList.isEmpty
+              ? const SizedBox(
+                  height: 100,
+                  child: Center(child: Text("there’s nothing here...", style: TextStyle(color: Color(0xFF7D848C), fontSize: 16, fontWeight: FontWeight.w500))),
+                )
+              : Column(
+                  children: requestList.map((request) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _buildRequestItem(request),
+                  )).toList(),
+                ),
         );
       },
     );
   }
 
   Widget _buildRequestItem(RequestedLecturer request) {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _openRequestedLecturerDetail(request),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0D4AA3), 
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(color: const Color(0xFF0D4AA3).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))
-              ]
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(radius: 20, backgroundImage: NetworkImage(request.imageUrl)),
-                const SizedBox(width: 10),
-                Expanded(child: Text('Requested Counseling\nwith Mr. ${request.name}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600))),
-              ],
-            ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _openRequestedLecturerDetail(request),
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0D4AA3), 
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [BoxShadow(color: const Color(0xFF0D4AA3).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))]
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(radius: 20, backgroundImage: NetworkImage(request.imageUrl)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Requested Counseling', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w500)),
+                    Text('with Mr. ${request.name}', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white54, size: 14),
+            ],
           ),
         ),
       ),
@@ -265,11 +245,8 @@ class _LecturerSelectionDashboardPageState
 }
 
 class _LecturerBannerCard extends StatelessWidget {
-  final String title;
-  final String imageUrl;
-  final VoidCallback onTap;
+  final String title; final String imageUrl; final VoidCallback onTap;
   const _LecturerBannerCard({required this.title, required this.imageUrl, required this.onTap});
-
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -280,10 +257,7 @@ class _LecturerBannerCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
           image: DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover),
-          // Shadow halus untuk banner card
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))
-          ]
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))]
         ),
         child: Container(
           alignment: Alignment.center,
@@ -296,7 +270,6 @@ class _LecturerBannerCard extends StatelessWidget {
 }
 
 class LecturerCategory {
-  final String title;
-  final String imageUrl;
+  final String title; final String imageUrl;
   const LecturerCategory({required this.title, required this.imageUrl});
 }

@@ -1,19 +1,25 @@
 import 'package:flutter/foundation.dart';
 
 class MentoringRequestStore {
-  static final ValueNotifier<RequestedLecturer?> currentRequest =
-      ValueNotifier<RequestedLecturer?>(null);
+  // Mengubah dari objek tunggal menjadi List agar bisa menampung banyak request
+  static final ValueNotifier<List<RequestedLecturer>> requests =
+      ValueNotifier<List<RequestedLecturer>>([]);
 
+  // Menambah dosen ke dalam daftar
   static void request(RequestedLecturer lecturer) {
-    currentRequest.value = lecturer;
+    if (!isRequested(lecturer.id)) {
+      requests.value = [...requests.value, lecturer];
+    }
   }
 
-  static void cancel() {
-    currentRequest.value = null;
+  // Menghapus dosen tertentu berdasarkan ID
+  static void cancel(String lecturerId) {
+    requests.value = requests.value.where((r) => r.id != lecturerId).toList();
   }
 
+  // Mengecek apakah dosen tertentu sudah direquest atau belum
   static bool isRequested(String lecturerId) {
-    return currentRequest.value?.id == lecturerId;
+    return requests.value.any((r) => r.id == lecturerId);
   }
 }
 

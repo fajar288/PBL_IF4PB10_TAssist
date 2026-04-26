@@ -23,8 +23,8 @@ class _NavbarMahasiswaState extends State<NavbarMahasiswa>
 
   final List<NavItem> _items = [
     const NavItem(icon: Icons.home_rounded, label: 'home'),
-    const NavItem(icon: Icons.calendar_month_rounded, label: 'jadwal'),
-    const NavItem(icon: Icons.upload_file_rounded, label: 'dokumen'),
+    const NavItem(icon: Icons.calendar_month_rounded, label: 'schedule'),
+    const NavItem(icon: Icons.upload_file_rounded, label: 'upload'),
   ];
 
   @override
