@@ -41,16 +41,8 @@ class DashboardMahasiswaWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: MentoringRequestStore.isApproved,
-      builder: (context, approved, _) {
-        // Jika sudah di-approve dosen, tampilkan dashboard progres baru
-        if (approved) {
-          return const DashboardMainMahasiswaPage();
-        }
-        // Jika belum, tampilkan dashboard pencarian dosen lama
-        return const LecturerSelectionDashboardPage();
-      },
-    );
+    // Sekarang wrapper hanya mengembalikan Shell Utama (MainMahasiswaPage)
+    // Logika detail isi halaman sudah dipindah ke dalam MainMahasiswaPage
+    return const MainMahasiswaPage();
   }
 }

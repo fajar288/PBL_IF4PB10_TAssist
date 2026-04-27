@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../app/app.dart';
-import 'navbar_mahasiswa.dart';
 
 class DashboardMainMahasiswaPage extends StatefulWidget {
   const DashboardMainMahasiswaPage({super.key});
@@ -48,12 +47,6 @@ class _DashboardMainMahasiswaPageState extends State<DashboardMainMahasiswaPage>
             ),
           ),
         ),
-      ),
-      bottomNavigationBar: NavbarMahasiswa(
-        currentIndex: 0,
-        onTap: (index) {
-          // Logika navigasi navbar
-        },
       ),
     );
   }
