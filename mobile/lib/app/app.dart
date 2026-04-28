@@ -41,8 +41,6 @@ class DashboardMahasiswaWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Sekarang wrapper hanya mengembalikan Shell Utama (MainMahasiswaPage)
-    // Logika detail isi halaman sudah dipindah ke dalam MainMahasiswaPage
     return const MainMahasiswaPage();
   }
 }

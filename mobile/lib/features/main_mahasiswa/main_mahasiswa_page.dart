@@ -4,6 +4,7 @@ import '../lecturer_selection/view/lecturer_selection_dashboard_page.dart';
 import '../lecturer_selection/view/mentoring_request_store.dart';
 import 'dashboard_main_mahasiswa_page.dart';
 import 'schedule_page.dart';
+import 'upload_document_page.dart';
 
 class MainMahasiswaPage extends StatefulWidget {
   const MainMahasiswaPage({super.key});
@@ -54,7 +55,7 @@ class _MainMahasiswaPageState extends State<MainMahasiswaPage> {
           ? [
               const DashboardMainMahasiswaPage(), // Index 0: Dashboard Progres
               const SchedulePage(),              // Index 1: Laman Schedule baru
-              _buildLockedFeaturePage(),          // Index 2: Upload (Placeholder)
+              const UploadDocumentPage(),          // Index 2: Upload Dokumen
             ]
           : [
               const LecturerSelectionDashboardPage(), // Index 0: Pilih Dosen
