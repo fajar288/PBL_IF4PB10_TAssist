@@ -23,7 +23,7 @@ class CustomBottomNav extends StatelessWidget {
   static const _items = [
     _NavItem(icon: Icons.home_rounded, activeIcon: Icons.home_rounded, label: 'Home'),
     _NavItem(icon: Icons.calendar_month_outlined, activeIcon: Icons.calendar_month_rounded, label: 'Schedule'),
-    _NavItem(icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'Profile'),
+    _NavItem(icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'Students'),
   ];
 
   @override

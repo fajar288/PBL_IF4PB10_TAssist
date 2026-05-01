@@ -33,6 +33,40 @@ class CounselingRequest {
   }
 }
 
+class StudentModel {
+  final String id;
+  final String name;
+  final String nim;
+  final String major;
+  final String year;
+  final String imageInitials;
+  final String status; // 'active', 'warning', 'completed'
+  final double progress; // 0.0 - 1.0
+  final String counselingSince;
+  final String email;
+  final String phone;
+  final int meetingCount;
+  final int taskCount;
+  final int taskCompleted;
+ 
+  const StudentModel({
+    required this.id,
+    required this.name,
+    required this.nim,
+    required this.major,
+    required this.year,
+    required this.imageInitials,
+    required this.status,
+    required this.progress,
+    required this.counselingSince,
+    required this.email,
+    required this.phone,
+    required this.meetingCount,
+    required this.taskCount,
+    required this.taskCompleted,
+  });
+}
+
 class MeetingRequest {
   final String id;
   final String studentName;

@@ -1,10 +1,10 @@
 // lib/features/dosen/view/dashboard_dosen_page.dart
 import 'package:flutter/material.dart';
 import 'package:produk/screen/home_screen.dart';
-import 'package:produk/screen/profile_screen.dart';
 import 'package:produk/widgets/custom_bottom_nav.dart';
 import 'package:produk/screen/meeting_detail_screen.dart';
 import 'package:produk/screen/schedule_list_screen.dart';
+import 'package:produk/screen/student_list_screen.dart';
 
 class DashboardDosenPage extends StatefulWidget {
   const DashboardDosenPage({super.key});
@@ -20,7 +20,7 @@ class _DashboardDosenPageState extends State<DashboardDosenPage> {
   static const _pages = [
     HomeScreen(),
     ScheduleListScreen(),
-    ProfileScreen(),
+    StudentListPage(),
   ];
 
   @override

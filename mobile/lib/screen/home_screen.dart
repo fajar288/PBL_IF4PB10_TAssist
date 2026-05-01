@@ -111,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             .slideX(begin: -0.1, end: 0),
                         const SizedBox(height: 2),
                         Text(
-                          'Aruna Fajar!',
+                          'Rio Putraa!',
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontSize: 26,
