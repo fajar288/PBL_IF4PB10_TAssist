@@ -1,11 +1,8 @@
-// lib/app.dart  (or wherever TAssistApp lives)
 import 'package:flutter/material.dart';
-import 'package:produk/features/main_mahasiswa/dashboard_main_mahasiswa_page.dart';
 import '../features/auth/view/login_page.dart';
 import '../features/loglearning/view/learning_placeholder_page.dart';
 import '../features/dosen/view/dashboard_dosen_page.dart';
 import '../features/main_mahasiswa/main_mahasiswa_page.dart';
-// ── NEW: import the TAssist theme so Material uses Poppins + our colors ──────
 import '../theme/app_theme.dart';
 
 class TAssistApp extends StatelessWidget {
