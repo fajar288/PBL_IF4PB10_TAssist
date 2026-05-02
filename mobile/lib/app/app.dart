@@ -3,12 +3,14 @@ import '../features/auth/view/login_page.dart';
 import '../features/loglearning/view/learning_placeholder_page.dart';
 import '../features/dosen/view/dashboard_dosen_page.dart';
 import '../features/main_mahasiswa/main_mahasiswa_page.dart';
+import '../features/splash/splash_screen.dart';
 import '../theme/app_theme.dart';
 
 class TAssistApp extends StatelessWidget {
   const TAssistApp({super.key});
 
   // ── Named Routes ────────────────────────────────────────────────────────────
+  static const String splashRoute         = '/splash';
   static const String loginRoute          = '/';
   static const String dashboardRoute      = '/dashboard-mahasiswa';
   static const String dashboardDosenRoute = '/dashboard-dosen';   // ← counselor home
@@ -23,8 +25,11 @@ class TAssistApp extends StatelessWidget {
       // ── Use the full premium theme instead of bare ThemeData ───────────────
       theme: AppTheme.lightTheme,
 
-      initialRoute: loginRoute,
+      initialRoute: splashRoute,
       routes: {
+        splashRoute: (_) => SplashScreen(
+          destinationBuilder: (_) => const LoginPage(),
+        ),
         loginRoute:          (_) => const LoginPage(),
         dashboardRoute:      (_) => const DashboardMahasiswaWrapper(),
         dashboardDosenRoute: (_) => const DashboardDosenPage(),   
