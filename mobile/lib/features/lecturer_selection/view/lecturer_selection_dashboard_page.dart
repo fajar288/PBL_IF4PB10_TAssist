@@ -125,7 +125,7 @@ class _LecturerSelectionDashboardPageState
                       children: [
                         const Text('👋  ', style: TextStyle(fontSize: 18)),
                         Text(
-                          'Good Morning,',
+                          'Hello There!,',
                           style: GoogleFonts.poppins(
                             color: Colors.white.withOpacity(0.75),
                             fontSize: 14,
