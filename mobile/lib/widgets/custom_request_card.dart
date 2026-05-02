@@ -5,6 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../model/models.dart';
 import '../theme/app_theme.dart';
 
+// Warna navbar aktif — dipakai konsisten di seluruh UI dosen
+const Color _navBlue      = Color(0xFF0D4AA3);
+const Color _navBlueDark  = Color(0xFF082E6B);
+const Color _navBlueLight = Color(0xFF1A65C8);
+
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 class StatusBadge extends StatelessWidget {
   final RequestStatus status;
@@ -81,9 +86,10 @@ class StylizedAvatar extends StatelessWidget {
             avatarUrl,
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) => Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primary, AppTheme.primaryLight],
+              decoration: const BoxDecoration(
+                // Diselaraskan dengan warna navbar aktif 0xFF0D4AA3
+                gradient: LinearGradient(
+                  colors: [_navBlueDark, _navBlueLight],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -195,13 +201,14 @@ class CounselingRequestCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryGhost,
+                      // Ghost biru navbar
+                      color: _navBlue.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 12,
-                      color: AppTheme.primary,
+                      color: _navBlue,
                     ),
                   ),
                 ],

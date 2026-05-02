@@ -20,7 +20,6 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedFilter = 'All';
   final _filters = ['All', 'Pending', 'Accepted', 'Declined'];
 
-  // Data dummy simulasi dipindahkan ke sini
   final List<Map<String, String>> _simulationRequests = const [
     {'name': 'Aruna Fajar Prayoga', 'avatar': 'A'},
     {'name': 'Eleanor Pena', 'avatar': 'E'},
@@ -39,7 +38,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _logout() {
     Navigator.of(context).pushReplacementNamed('/');
-  }
+  } 
+
+  // Warna navbar aktif — dipakai konsisten di header
+  static const Color _navBlue      = Color(0xFF0D4AA3);
+  static const Color _navBlueDark  = Color(0xFF082E6B); // lebih gelap untuk start gradient
+  static const Color _navBlueLight = Color(0xFF1A65C8); // lebih terang untuk end gradient
 
   @override
   Widget build(BuildContext context) {
@@ -48,10 +52,8 @@ class _HomeScreenState extends State<HomeScreen> {
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // Header dengan fungsi Logout
           SliverToBoxAdapter(child: _buildHeader(context)),
 
-          // --- SECTION SIMULASI (Hanya muncul jika belum di-approve) ---
           ValueListenableBuilder<bool>(
             valueListenable: MentoringRequestStore.isApproved,
             builder: (context, approved, _) {
@@ -65,13 +67,11 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
 
-          // Filter Tabs
           SliverToBoxAdapter(child: _buildFilterRow()),
 
-          // Request List
           SliverPadding(
             padding: EdgeInsets.fromLTRB(
-              20, 8, 20, CustomBottomNav.totalHeight + 16,
+              20, 8, 20, CustomBottomNav.navBarHeight + CustomBottomNav.bottomPadding + 16,
             ),
             sliver: _filteredRequests.isEmpty
                 ? const SliverToBoxAdapter(child: _EmptyState())
@@ -98,7 +98,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF312E81), Color(0xFF4338CA), Color(0xFF6366F1)],
+          // Diselaraskan dengan warna navbar aktif 0xFF0D4AA3
+          colors: [_navBlueDark, _navBlue, _navBlueLight],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -151,7 +152,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  // User Avatar dengan fungsi Logout
                   GestureDetector(
                     onTap: _logout,
                     child: Container(
@@ -178,7 +178,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           errorBuilder: (_, __, ___) => Container(
                             width: 56, height: 56,
                             color: Colors.white24,
-                            child: const Center(child: Text('AF', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                            child: const Center(
+                              child: Text('AF', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            ),
                           ),
                         ),
                       ),
@@ -228,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.mail_rounded, color: Color(0xFF4338CA), size: 22),
+              const Icon(Icons.mail_rounded, color: _navBlue, size: 22),
               const SizedBox(width: 10),
               Text(
                 'Example: New Requests',
@@ -248,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     CircleAvatar(
                       radius: 18,
-                      backgroundColor: const Color(0xFF4338CA),
+                      backgroundColor: _navBlue,
                       child: Text(req['avatar']!, style: const TextStyle(color: Colors.white, fontSize: 12)),
                     ),
                     const SizedBox(width: 12),
@@ -264,7 +266,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF4338CA),
+                        foregroundColor: _navBlue,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -318,12 +320,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// Widget pendukung (_StatChip, _FilterChip, _EmptyState) tetap sama seperti kode Anda
 class _StatChip extends StatelessWidget {
   final String label;
   final int count;
   final Color color;
   const _StatChip({required this.label, required this.count, required this.color});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -349,6 +351,7 @@ class _FilterChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   const _FilterChip({required this.label, required this.selected, required this.onTap});
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -358,11 +361,21 @@ class _FilterChip extends StatelessWidget {
         margin: const EdgeInsets.only(left: 6),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: selected ? AppTheme.primary : Colors.transparent,
+          color: selected ? const Color(0xFF0D4AA3) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? AppTheme.primary : const Color(0xFFCBD5E1), width: 1.5),
+          border: Border.all(
+            color: selected ? const Color(0xFF0D4AA3) : const Color(0xFFCBD5E1),
+            width: 1.5,
+          ),
         ),
-        child: Text(label, style: GoogleFonts.poppins(color: selected ? Colors.white : AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
+        child: Text(
+          label,
+          style: GoogleFonts.poppins(
+            color: selected ? Colors.white : AppTheme.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
@@ -370,6 +383,7 @@ class _FilterChip extends StatelessWidget {
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -379,12 +393,14 @@ class _EmptyState extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: const BoxDecoration(color: Color(0xFFEEF2F6), shape: BoxShape.circle),
-            child: const Icon(Icons.inbox_rounded, size: 48, color: Color(0xFF4338CA)),
+            child: const Icon(Icons.inbox_rounded, size: 48, color: Color(0xFF0D4AA3)),
           ),
           const SizedBox(height: 16),
           Text('No requests found', style: GoogleFonts.poppins(color: const Color(0xFF1E293B), fontSize: 17, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
-          Text('There are no requests matching\nthis filter right now.', textAlign: TextAlign.center, style: GoogleFonts.poppins(color: const Color(0xFF64748B), fontSize: 13)),
+          Text('There are no requests matching\nthis filter right now.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(color: const Color(0xFF64748B), fontSize: 13)),
         ],
       ),
     );

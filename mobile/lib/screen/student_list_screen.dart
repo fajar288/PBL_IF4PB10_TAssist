@@ -75,6 +75,11 @@ class _StudentListPageState extends State<StudentListPage>
     return DummyData.dummyStudents.where((s) => s.status == status.toLowerCase()).length;
   }
 
+
+  // Warna navbar aktif — dipakai konsisten di header
+  static const Color _navBlue      = Color(0xFF0D4AA3);
+  static const Color _navBlueDark  = Color(0xFF082E6B); // lebih gelap untuk start gradient
+  static const Color _navBlueLight = Color(0xFF1A65C8);
 @override
 Widget build(BuildContext context) {
   return Scaffold(
@@ -104,7 +109,7 @@ Widget build(BuildContext context) {
               : ListView.builder(
                   padding: EdgeInsets.only(
                     top: 4,
-                    bottom: CustomBottomNav.totalHeight + 16,
+                    bottom: CustomBottomNav.navBarHeight + CustomBottomNav.bottomPadding + 16,
                   ),
                   itemCount: _filteredStudents.length,
                   itemBuilder: (context, index) {
@@ -142,7 +147,7 @@ Widget _buildHeader(BuildContext context) {
   return Container(
     decoration: const BoxDecoration(
       gradient: LinearGradient(
-        colors: [Color(0xFF312E81), Color(0xFF4338CA), Color(0xFF6366F1)],
+        colors: [_navBlueDark, _navBlue, _navBlueLight],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),

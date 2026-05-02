@@ -12,6 +12,12 @@ import 'meeting_detail_screen.dart';
 class ScheduleListScreen extends StatelessWidget {
   const ScheduleListScreen({super.key});
 
+
+  // Warna navbar aktif — dipakai konsisten di header
+  static const Color _navBlue      = Color(0xFF0D4AA3);
+  static const Color _navBlueDark  = Color(0xFF082E6B); // lebih gelap untuk start gradient
+  static const Color _navBlueLight = Color(0xFF1A65C8);
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -32,7 +38,7 @@ class ScheduleListScreen extends StatelessWidget {
               child: Text(
                 'All Meeting Requests',
                 style: GoogleFonts.poppins(
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.textPrimary,  
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                 ),
@@ -43,7 +49,7 @@ class ScheduleListScreen extends StatelessWidget {
           // ── List ───────────────────────────────────────────────────────────
           SliverPadding(
             padding: EdgeInsets.fromLTRB(
-              20, 8, 20, CustomBottomNav.totalHeight + 16,
+              20, 8, 20, CustomBottomNav.navBarHeight + CustomBottomNav.bottomPadding + 16,
             ),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
@@ -73,7 +79,7 @@ class ScheduleListScreen extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF312E81), Color(0xFF4338CA), Color(0xFF6366F1)],
+          colors: [_navBlueDark, _navBlue, _navBlueLight],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -143,10 +149,10 @@ class ScheduleListScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             colors: [
-              AppTheme.primary,
-              AppTheme.primaryLight,
+              Color(0xFF082E6B), // _navBlueDark
+              Color(0xFF1A65C8), // _navBlueLight
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -154,7 +160,7 @@ class ScheduleListScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primary.withOpacity(0.3),
+              color: const Color(0xFF0D4AA3).withOpacity(0.3),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
