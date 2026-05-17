@@ -1,3 +1,4 @@
+// Lib/Features/auth/view/login_page.dart
 import 'package:flutter/material.dart';
 import '../../../app/app.dart';
 import '../data/auth_service.dart';
@@ -245,38 +246,6 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         const SizedBox(height: 16),
-
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: _fillMahasiswaAccount,
-                                style: OutlinedButton.styleFrom(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                                child: const Text('Isi Akun Mahasiswa'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: _fillDosenAccount,
-                                style: OutlinedButton.styleFrom(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                                child: const Text('Isi Akun Dosen'),
-                              ),
-                            ),
-                          ],
-                        ),
 
                         const SizedBox(height: 10),
                         Align(
