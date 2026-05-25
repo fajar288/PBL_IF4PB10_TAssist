@@ -30,7 +30,7 @@ class _MainMahasiswaPageState extends State<MainMahasiswaPage> {
         child: Padding(
           padding: EdgeInsets.all(32.0),
           child: Text(
-            "kamu belum ada dosen pembimbing,\nfitur ini belum tersedia",
+            "This feature is not available\nuntil you have an academic advisor",
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.black54,
