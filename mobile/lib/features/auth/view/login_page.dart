@@ -1,4 +1,10 @@
 // Lib/Features/auth/view/login_page.dart
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import '../../../core/google_web_button/google_button.dart' as google_web_button;
+
 import 'package:flutter/material.dart';
 import '../../../app/app.dart';
 import '../data/auth_service.dart';
@@ -20,25 +26,134 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true;
   bool _isLoading = false;
 
+  StreamSubscription<GoogleSignInAuthenticationEvent>? _googleAuthSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupGoogleWebSignIn();
+  }
+
+  Future<void> _setupGoogleWebSignIn() async {
+    if (!kIsWeb) return;
+
+    try {
+      await _authService.initGoogleSignIn();
+
+      _googleAuthSubscription ??=
+          GoogleSignIn.instance.authenticationEvents.listen(
+        _handleGoogleWebAuthEvent,
+        onError: _handleGoogleWebAuthError,
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal menyiapkan Google Sign-In: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleGoogleWebAuthEvent(
+    GoogleSignInAuthenticationEvent event,
+  ) async {
+    final GoogleSignInAccount? user = switch (event) {
+      GoogleSignInAuthenticationEventSignIn() => event.user,
+      GoogleSignInAuthenticationEventSignOut() => null,
+    };
+
+    if (user == null) return;
+
+    final String? idToken = user.authentication.idToken;
+
+    if (idToken == null || idToken.isEmpty) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ID Token Google kosong. Cek konfigurasi Google Cloud.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    await _continueGoogleLoginWithIdToken(idToken);
+  }
+
+  void _handleGoogleWebAuthError(Object error) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Login Google gagal: $error'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  Future<void> _continueGoogleLoginWithIdToken(String idToken) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final result = await _authService.loginWithGoogleIdToken(idToken);
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    _handleGoogleLoginResult(result);
+  }
+
+  void _handleGoogleLoginResult(AuthResult result) {
+    if (result.isSuccess) {
+      if (result.role == 'dosen') {
+        Navigator.pushReplacementNamed(
+          context,
+          TAssistApp.dashboardDosenRoute,
+        );
+      } else if (result.role == 'mahasiswa') {
+        if (result.needCompleteMahasiswaProfile) {
+          Navigator.pushReplacementNamed(
+            context,
+            TAssistApp.completeStudentProfileRoute,
+          );
+        } else {
+          Navigator.pushReplacementNamed(
+            context,
+            TAssistApp.dashboardRoute,
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Role pengguna tidak dikenali.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
+    _googleAuthSubscription?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  void _fillMahasiswaAccount() {
-    setState(() {
-      _emailController.text = 'mahasiswa@gmail.com';
-      _passwordController.text = 'mahasiswa123';
-    });
-  }
-
-  void _fillDosenAccount() {
-    setState(() {
-      _emailController.text = 'dosen@gmail.com';
-      _passwordController.text = 'dosen123';
-    });
   }
 
   Future<void> _handleLogin() async {
@@ -118,12 +233,26 @@ class _LoginPageState extends State<LoginPage> {
     Navigator.pushNamed(context, TAssistApp.learningRoute);
   }
 
-  void _showGoogleLoginInfo() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Login Google belum tersedia.'),
-      ),
-    );
+  Future<void> _handleGoogleLogin() async {
+    if (kIsWeb) {
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final result = await _authService.loginWithGoogle();
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    _handleGoogleLoginResult(result);
   }
 
   @override
@@ -301,11 +430,33 @@ class _LoginPageState extends State<LoginPage> {
                           style: TextStyle(fontSize: 16),
                         ),
                         const SizedBox(height: 22),
-                        _socialButton(
-                          label: 'Continue with Google',
-                          assetIconPath: 'assets/images/google_iconbgnew.png',
-                          onTap: _showGoogleLoginInfo,
-                        ),
+                        if (kIsWeb)
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              return SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: Center(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Transform.scale(
+                                      scaleX: 1.0,
+                                      scaleY: 1.18,
+                                      child: google_web_button.buildGoogleWebButton(
+                                        width: constraints.maxWidth,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        else
+                          _socialButton(
+                            label: 'Continue with Google',
+                            assetIconPath: 'assets/images/google_iconbgnew.png',
+                            onTap: _isLoading ? () {} : _handleGoogleLogin,
+                          ),
                         const SizedBox(height: 18),
                         _socialButton(
                           label: 'Continue with Learning',

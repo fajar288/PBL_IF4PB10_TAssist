@@ -4,6 +4,7 @@ import '../features/loglearning/view/learning_placeholder_page.dart';
 import '../features/dosen/view/dashboard_dosen_page.dart';
 import '../features/main_mahasiswa/main_mahasiswa_page.dart';
 import '../features/splash/splash_screen.dart';
+import '../features/auth/view/complete_student_profile_page.dart';
 import '../theme/app_theme.dart';
 
 class TAssistApp extends StatelessWidget {
@@ -15,6 +16,7 @@ class TAssistApp extends StatelessWidget {
   static const String dashboardRoute      = '/dashboard-mahasiswa';
   static const String dashboardDosenRoute = '/dashboard-dosen';   // ← counselor home
   static const String learningRoute       = '/learning';
+  static const String completeStudentProfileRoute = '/complete-student-profile';
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +36,7 @@ class TAssistApp extends StatelessWidget {
         dashboardRoute:      (_) => const DashboardMahasiswaWrapper(),
         dashboardDosenRoute: (_) => const DashboardDosenPage(),   
         learningRoute:       (_) => const LearningPlaceholderPage(),
+        completeStudentProfileRoute: (_) => const CompleteStudentProfilePage(),
       },
     );
   }
