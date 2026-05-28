@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
+import '../../main_mahasiswa/navbar_mahasiswa.dart';
 import 'lecturers_page.dart';
 import 'mentoring_request_store.dart';
-import '../../main_mahasiswa/navbar_mahasiswa.dart';
 
 class LecturerDetailPage extends StatelessWidget {
   final LecturerModel lecturer;
@@ -17,16 +18,20 @@ class LecturerDetailPage extends StatelessWidget {
       backgroundColor: const Color(0xFFEEF2F6),
       extendBody: true,
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 18),
-            _buildHeader(context),
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: _buildDetailCard(context),
-            ),
-          ],
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 110),
+          child: Column(
+            children: [
+              const SizedBox(height: 18),
+              _buildHeader(context),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: _buildDetailCard(context),
+              ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: NavbarMahasiswa(
@@ -47,13 +52,21 @@ class LecturerDetailPage extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF2D3238), size: 22),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Color(0xFF2D3238),
+                size: 22,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
           ),
           const Text(
             'Lecturer Detail',
-            style: TextStyle(color: Color(0xFF2D3238), fontSize: 24, fontWeight: FontWeight.w800),
+            style: TextStyle(
+              color: Color(0xFF2D3238),
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),
@@ -69,7 +82,11 @@ class LecturerDetailPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.black.withOpacity(0.05)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 15, offset: const Offset(0, 6)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
         ],
       ),
       child: Column(
@@ -77,33 +94,81 @@ class LecturerDetailPage extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: Image.network(lecturer.imageUrl, height: 280, width: double.infinity, fit: BoxFit.cover),
+            child: Image.network(
+              lecturer.imageUrl,
+              height: 280,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) {
+                return Container(
+                  height: 280,
+                  width: double.infinity,
+                  color: const Color(0xFFE5E7EB),
+                  child: const Center(
+                    child: Icon(
+                      Icons.person_rounded,
+                      color: Color(0xFF6B7280),
+                      size: 80,
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
           const SizedBox(height: 24),
           _buildInfoRow('Name :', lecturer.displayName),
           const SizedBox(height: 12),
           _buildInfoRow('NID :', lecturer.nid),
           const SizedBox(height: 12),
-          _buildInfoRow('Major :', lecturer.department.label),
-          const SizedBox(height: 12),
+          _buildInfoRow('Expertise :', lecturer.bidangKeahlian),
+          if (lecturer.email != null && lecturer.email!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildInfoRow('Email :', lecturer.email!),
+          ],
+          if (lecturer.profilSingkat != null &&
+              lecturer.profilSingkat!.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            _buildProfileSection(lecturer.profilSingkat!),
+          ],
+          const SizedBox(height: 20),
           Row(
             children: [
-              const Expanded(flex: 4, child: Text('Number of guidance left :', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF111111)))),
+              const Expanded(
+                flex: 4,
+                child: Text(
+                  'Number of guidance left :',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF111111),
+                  ),
+                ),
+              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(20)),
-                child: Text('${lecturer.quotaLeft}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE5E7EB),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${lecturer.quotaLeft}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 32),
-          
-          // Memantau daftar request di Store
           ValueListenableBuilder<List<RequestedLecturer>>(
             valueListenable: MentoringRequestStore.requests,
             builder: (context, allRequests, _) {
-              // Cek apakah ID dosen ini ada di dalam list request
-              bool isThisLecturerRequested = MentoringRequestStore.isRequested(lecturer.id);
+              final bool isThisLecturerRequested =
+                  MentoringRequestStore.isRequested(lecturer.id);
 
               if (isThisLecturerRequested) {
                 return Row(
@@ -117,7 +182,14 @@ class LecturerDetailPage extends StatelessWidget {
                           color: const Color(0xFF0D4AA3).withOpacity(0.5),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Text('Requested', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Requested',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -127,44 +199,93 @@ class LecturerDetailPage extends StatelessWidget {
                         height: 52,
                         child: OutlinedButton(
                           onPressed: () {
-                            // Cancel berdasarkan ID spesifik
                             MentoringRequestStore.cancel(lecturer.id);
                           },
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.redAccent, width: 1.5),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            side: const BorderSide(
+                              color: Colors.redAccent,
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          child: const Text('Cancel', style: TextStyle(color: Colors.redAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ],
                 );
-              } else {
-                return SizedBox(
+              }
+
+              if (lecturer.quotaLeft <= 0) {
+                return Container(
                   width: double.infinity,
                   height: 52,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      MentoringRequestStore.request(
-                        RequestedLecturer(
-                          id: lecturer.id,
-                          name: lecturer.name,
-                          major: lecturer.department.label,
-                          imageUrl: lecturer.imageUrl,
-                          nid: lecturer.nid,
-                          guidanceQuotaLeft: lecturer.quotaLeft,
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0D4AA3),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade400,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'Quota Full',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
                     ),
-                    child: const Text('Request Counseling', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
                 );
               }
+
+              return SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () {
+                    MentoringRequestStore.request(
+                      RequestedLecturer(
+                        id: lecturer.id,
+                        name: lecturer.name,
+                        major: lecturer.bidangKeahlian,
+                        imageUrl: lecturer.imageUrl,
+                        nid: lecturer.nid,
+                        guidanceQuotaLeft: lecturer.quotaLeft,
+                      ),
+                    );
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Request counseling with ${lecturer.name} saved locally.',
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0D4AA3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Request Counseling',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              );
             },
           ),
         ],
@@ -176,9 +297,64 @@ class LecturerDetailPage extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(flex: 2, child: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF111111)))),
-        Expanded(flex: 3, child: Text(value, textAlign: TextAlign.right, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF111111)))),
+        Expanded(
+          flex: 2,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF111111),
+            ),
+          ),
+        ),
+        Expanded(
+          flex: 3,
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF111111),
+            ),
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildProfileSection(String profile) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Short Profile',
+            style: TextStyle(
+              color: Color(0xFF111111),
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            profile,
+            style: const TextStyle(
+              color: Color(0xFF5A6269),
+              fontSize: 13,
+              height: 1.4,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

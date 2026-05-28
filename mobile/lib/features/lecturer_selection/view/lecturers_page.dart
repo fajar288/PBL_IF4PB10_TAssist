@@ -1,15 +1,18 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
-import 'lecturer_detail_page.dart';
+
 import '../../main_mahasiswa/navbar_mahasiswa.dart';
+import '../../../mahasiswa/data/mahasiswa_service.dart';
+import 'lecturer_detail_page.dart';
 
 class LecturersPage extends StatefulWidget {
   const LecturersPage({
     super.key,
-    this.initialDepartment,
+    this.initialBidangKeahlian,
   });
 
-  final LecturerDepartment? initialDepartment;
+  final String? initialBidangKeahlian;
 
   @override
   State<LecturersPage> createState() => _LecturersPageState();
@@ -17,52 +20,31 @@ class LecturersPage extends StatefulWidget {
 
 class _LecturersPageState extends State<LecturersPage> {
   final TextEditingController _searchController = TextEditingController();
+  final MahasiswaService _mahasiswaService = MahasiswaService();
 
-  late LecturerDepartment? _selectedDepartment;
+  late String? _selectedBidangKeahlian;
   LecturerViewType _selectedView = LecturerViewType.standard;
 
   bool _showFilterDropdown = false;
   bool _showViewDropdown = false;
 
-  final List<LecturerModel> _allLecturers = const [
-    LecturerModel(
-      id: '1',
-      name: 'Aruna Fajar',
-      department: LecturerDepartment.informatics,
-      imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80',
-      quotaLeft: 2,
-      nid: '0000000001',
-    ),
-    LecturerModel(
-      id: '2',
-      name: 'Dimas Pratama',
-      department: LecturerDepartment.informatics,
-      imageUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80',
-      quotaLeft: 1,
-      nid: '0000000002',
-    ),
-    LecturerModel(
-      id: '3',
-      name: 'Salsa Mahendra',
-      department: LecturerDepartment.informatics,
-      imageUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=600&q=80',
-      quotaLeft: 3,
-      nid: '0000000003',
-    ),
-    LecturerModel(
-      id: '4',
-      name: 'Aruna Fajar',
-      department: LecturerDepartment.business,
-      imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80',
-      quotaLeft: 2,
-      nid: '0000000004',
-    ),
+  List<LecturerModel> _allLecturers = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  final List<String> _bidangOptions = const [
+    'Kecerdasan Buatan dan Machine Learning',
+    'Rekayasa Perangkat Lunak',
+    'Jaringan Komputer dan Keamanan Siber',
+    'Sistem Informasi dan Basis Data',
+    'Computer Vision dan Pengolahan Citra',
   ];
 
   @override
   void initState() {
     super.initState();
-    _selectedDepartment = widget.initialDepartment;
+    _selectedBidangKeahlian = widget.initialBidangKeahlian;
+    _loadLecturers();
   }
 
   @override
@@ -71,51 +53,137 @@ class _LecturersPageState extends State<LecturersPage> {
     super.dispose();
   }
 
+  Future<void> _loadLecturers() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final rows = await _mahasiswaService.getDosen(
+        bidangKeahlian: _selectedBidangKeahlian,
+        adaKuota: false,
+        perPage: 50,
+      );
+
+      final lecturers = rows
+          .map((item) => LecturerModel.fromJson(item))
+          .toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        _allLecturers = lecturers;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _isLoading = false;
+      });
+    }
+  }
+
   List<LecturerModel> get _filteredLecturers {
     final query = _searchController.text.trim().toLowerCase();
+
     return _allLecturers.where((lecturer) {
-      final matchesDepartment = _selectedDepartment == null ? true : lecturer.department == _selectedDepartment;
-      final matchesSearch = query.isEmpty ? true : lecturer.name.toLowerCase().contains(query);
-      return matchesDepartment && matchesSearch;
+      if (query.isEmpty) return true;
+
+      final name = lecturer.name.toLowerCase();
+      final bidang = lecturer.bidangKeahlian.toLowerCase();
+      final nid = lecturer.nid.toLowerCase();
+
+      return name.contains(query) ||
+          bidang.contains(query) ||
+          nid.contains(query);
     }).toList();
   }
 
-  int get _activeFilterCount => _selectedDepartment != null ? 1 : 0;
+  int get _activeFilterCount {
+    return _selectedBidangKeahlian != null ? 1 : 0;
+  }
 
   int _getCrossAxisCount(double width) {
-    if (_selectedView == LecturerViewType.extraLarge) return 1;
-    if (_selectedView == LecturerViewType.large) return width < 700 ? 1 : 2;
-    if (width < 430) return 2;
-    if (width < 900) return 3;
+    if (_selectedView == LecturerViewType.extraLarge) {
+      return 1;
+    }
+
+    if (_selectedView == LecturerViewType.large) {
+      return width < 700 ? 1 : 2;
+    }
+
+    if (width < 430) {
+      return 2;
+    }
+
+    if (width < 900) {
+      return 3;
+    }
+
     return 4;
   }
 
   double _getGridItemHeight(double width) {
-    if (_selectedView == LecturerViewType.extraLarge) return 100;
+    if (_selectedView == LecturerViewType.extraLarge) {
+      return 150;
+    }
+
+    if (_selectedView == LecturerViewType.large) {
+      return 250;
+    }
+
     return 240;
   }
 
-  bool get _isOverlayVisible => _showFilterDropdown || _showViewDropdown;
+  bool get _isOverlayVisible {
+    return _showFilterDropdown || _showViewDropdown;
+  }
 
   void _toggleFilterDropdown() {
     setState(() {
       _showFilterDropdown = !_showFilterDropdown;
-      if (_showFilterDropdown) _showViewDropdown = false;
+
+      if (_showFilterDropdown) {
+        _showViewDropdown = false;
+      }
     });
   }
 
   void _toggleViewDropdown() {
     setState(() {
       _showViewDropdown = !_showViewDropdown;
-      if (_showViewDropdown) _showFilterDropdown = false;
+
+      if (_showViewDropdown) {
+        _showFilterDropdown = false;
+      }
     });
   }
 
-  void _closeAllDropdowns() => setState(() { _showFilterDropdown = false; _showViewDropdown = false; });
+  void _closeAllDropdowns() {
+    setState(() {
+      _showFilterDropdown = false;
+      _showViewDropdown = false;
+    });
+  }
 
-  void _selectDepartment(LecturerDepartment department) => setState(() { _selectedDepartment = department; _showFilterDropdown = false; });
+  void _selectBidangKeahlian(String? bidang) {
+    setState(() {
+      _selectedBidangKeahlian = bidang;
+      _showFilterDropdown = false;
+    });
 
-  void _selectView(LecturerViewType viewType) => setState(() { _selectedView = viewType; _showViewDropdown = false; });
+    _loadLecturers();
+  }
+
+  void _selectView(LecturerViewType viewType) {
+    setState(() {
+      _selectedView = viewType;
+      _showViewDropdown = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +207,15 @@ class _LecturersPageState extends State<LecturersPage> {
                         _buildTopControls(),
                         const SizedBox(height: 18),
                         Expanded(
-                          child: lecturers.isEmpty ? _buildEmptyState() : _buildLecturerGrid(lecturers),
+                          child: _isLoading
+                              ? const Center(
+                                  child: CircularProgressIndicator(),
+                                )
+                              : _errorMessage != null
+                                  ? _buildErrorState()
+                                  : lecturers.isEmpty
+                                      ? _buildEmptyState()
+                                      : _buildLecturerGrid(lecturers),
                         ),
                       ],
                     ),
@@ -153,7 +229,9 @@ class _LecturersPageState extends State<LecturersPage> {
                   onTap: _closeAllDropdowns,
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-                    child: Container(color: Colors.black.withOpacity(0.1)),
+                    child: Container(
+                      color: Colors.black.withOpacity(0.1),
+                    ),
                   ),
                 ),
               ),
@@ -161,13 +239,14 @@ class _LecturersPageState extends State<LecturersPage> {
                 top: 155,
                 left: 14,
                 right: 14,
-                child: _showFilterDropdown ? _buildFilterDropdown() : _buildViewDropdown(),
+                child: _showFilterDropdown
+                    ? _buildFilterDropdown()
+                    : _buildViewDropdown(),
               ),
             ],
           ],
         ),
       ),
-      // 2. Menambahkan NavbarMahasiswa di sini agar tetap muncul
       bottomNavigationBar: NavbarMahasiswa(
         currentIndex: 0,
         onTap: (index) {
@@ -186,13 +265,21 @@ class _LecturersPageState extends State<LecturersPage> {
           Align(
             alignment: Alignment.centerLeft,
             child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF2D3238), size: 22),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Color(0xFF2D3238),
+                size: 22,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
           ),
           const Text(
             'Lecturers',
-            style: TextStyle(color: Color(0xFF2D3238), fontSize: 24, fontWeight: FontWeight.w800),
+            style: TextStyle(
+              color: Color(0xFF2D3238),
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),
@@ -221,11 +308,20 @@ class _LecturersPageState extends State<LecturersPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                border: Border(right: BorderSide(color: Colors.black.withOpacity(0.1), width: 1)),
+                border: Border(
+                  right: BorderSide(
+                    color: Colors.black.withOpacity(0.1),
+                    width: 1,
+                  ),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.search_rounded, size: 20, color: Color(0xFF2D3238)),
+                  const Icon(
+                    Icons.search_rounded,
+                    size: 20,
+                    color: Color(0xFF2D3238),
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
@@ -233,8 +329,11 @@ class _LecturersPageState extends State<LecturersPage> {
                       onChanged: (_) => setState(() {}),
                       style: const TextStyle(fontSize: 14),
                       decoration: const InputDecoration(
-                        hintText: 'Search name',
-                        hintStyle: TextStyle(color: Color(0xFF9BA3AF), fontSize: 14),
+                        hintText: 'Search name, expertise, or NID',
+                        hintStyle: TextStyle(
+                          color: Color(0xFF9BA3AF),
+                          fontSize: 14,
+                        ),
                         border: InputBorder.none,
                         isDense: true,
                       ),
@@ -277,22 +376,50 @@ class _LecturersPageState extends State<LecturersPage> {
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            border: hasBorder ? Border(right: BorderSide(color: Colors.black.withOpacity(0.1), width: 1)) : null,
+            border: hasBorder
+                ? Border(
+                    right: BorderSide(
+                      color: Colors.black.withOpacity(0.1),
+                      width: 1,
+                    ),
+                  )
+                : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 18, color: const Color(0xFF2D3238)),
+              Icon(
+                icon,
+                size: 18,
+                color: const Color(0xFF2D3238),
+              ),
               const SizedBox(width: 6),
-              Text(label, style: const TextStyle(color: Color(0xFF5A6269), fontSize: 13, fontWeight: FontWeight.w600)),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Color(0xFF5A6269),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               if (showBadge) ...[
                 const SizedBox(width: 4),
                 Container(
                   padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(color: Color(0xFF0D4AA3), shape: BoxShape.circle),
-                  child: Text('$_activeFilterCount', style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                )
-              ]
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0D4AA3),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '$_activeFilterCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -304,23 +431,32 @@ class _LecturersPageState extends State<LecturersPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final gridWidth = screenWidth - 28;
 
-    return GridView.builder(
-      padding: const EdgeInsets.only(bottom: 100),
-      itemCount: lecturers.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: _getCrossAxisCount(gridWidth),
-        crossAxisSpacing: 14,
-        mainAxisSpacing: 14,
-        mainAxisExtent: _getGridItemHeight(gridWidth),
-      ),
-      itemBuilder: (context, index) => _LecturerCard(
-        lecturer: lecturers[index],
-        viewType: _selectedView,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => LecturerDetailPage(lecturer: lecturers[index])),
-          ).then((_) => setState(() {}));
+    return RefreshIndicator(
+      onRefresh: _loadLecturers,
+      child: GridView.builder(
+        padding: const EdgeInsets.only(bottom: 100),
+        itemCount: lecturers.length,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: _getCrossAxisCount(gridWidth),
+          crossAxisSpacing: 14,
+          mainAxisSpacing: 14,
+          mainAxisExtent: _getGridItemHeight(gridWidth),
+        ),
+        itemBuilder: (context, index) {
+          return _LecturerCard(
+            lecturer: lecturers[index],
+            viewType: _selectedView,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LecturerDetailPage(
+                    lecturer: lecturers[index],
+                  ),
+                ),
+              ).then((_) => setState(() {}));
+            },
+          );
         },
       ),
     );
@@ -328,21 +464,40 @@ class _LecturersPageState extends State<LecturersPage> {
 
   Widget _buildFilterDropdown() {
     return _buildBaseDropdown(
-      children: LecturerDepartment.values.map((dept) => _DropdownRadioTile(
-        title: dept.label,
-        isSelected: _selectedDepartment == dept,
-        onTap: () => _selectDepartment(dept),
-      )).toList(),
+      children: [
+        _DropdownRadioTile(
+          title: 'All Fields',
+          isSelected: _selectedBidangKeahlian == null,
+          onTap: () => _selectBidangKeahlian(null),
+        ),
+        ..._bidangOptions.map(
+          (bidang) {
+            return _DropdownRadioTile(
+              title: bidang,
+              isSelected: _selectedBidangKeahlian == bidang ||
+                  (_selectedBidangKeahlian != null &&
+                      bidang.toLowerCase().contains(
+                            _selectedBidangKeahlian!.toLowerCase(),
+                          )),
+              onTap: () => _selectBidangKeahlian(bidang),
+            );
+          },
+        ),
+      ],
     );
   }
 
   Widget _buildViewDropdown() {
     return _buildBaseDropdown(
-      children: LecturerViewType.values.map((view) => _DropdownRadioTile(
-        title: view.label,
-        isSelected: _selectedView == view,
-        onTap: () => _selectView(view),
-      )).toList(),
+      children: LecturerViewType.values.map(
+        (view) {
+          return _DropdownRadioTile(
+            title: view.label,
+            isSelected: _selectedView == view,
+            onTap: () => _selectView(view),
+          );
+        },
+      ).toList(),
     );
   }
 
@@ -352,24 +507,91 @@ class _LecturersPageState extends State<LecturersPage> {
       shadowColor: Colors.black26,
       borderRadius: BorderRadius.circular(16),
       child: Container(
+        constraints: const BoxConstraints(maxHeight: 360),
         padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(16)),
-        child: Column(mainAxisSize: MainAxisSize.min, children: children),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: children,
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildEmptyState() => const Center(child: Text('No lecturers found.', style: TextStyle(color: Color(0xFF5A6269), fontSize: 16)));
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Text(
+        'No lecturers found.',
+        style: TextStyle(
+          color: Color(0xFF5A6269),
+          fontSize: 16,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: Colors.redAccent,
+              size: 42,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Failed to load lecturers',
+              style: TextStyle(
+                color: Color(0xFF2D3238),
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage ?? '-',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.black54,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadLecturers,
+              child: const Text('Try Again'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _LecturerCard extends StatelessWidget {
-  const _LecturerCard({required this.lecturer, required this.viewType, required this.onTap});
+  const _LecturerCard({
+    required this.lecturer,
+    required this.viewType,
+    required this.onTap,
+  });
+
   final LecturerModel lecturer;
   final LecturerViewType viewType;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final bool isExtraLarge = viewType == LecturerViewType.extraLarge;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -386,32 +608,107 @@ class _LecturerCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: isExtraLarge
+            ? Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      lecturer.imageUrl,
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _buildImageFallback(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildLecturerInfo(),
+                  ),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        lecturer.imageUrl,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _buildImageFallback(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildLecturerInfo(),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildLecturerInfo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(lecturer.imageUrl, width: double.infinity, fit: BoxFit.cover),
+              child: Text(
+                lecturer.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF111111),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(lecturer.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF111111), fontSize: 14, fontWeight: FontWeight.w700)),
+            Container(
+              padding: const EdgeInsets.all(5),
+              decoration: const BoxDecoration(
+                color: Color(0xFFE5E7EB),
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                '${lecturer.quotaLeft}',
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
                 ),
-                Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(color: const Color(0xFFE5E7EB), shape: BoxShape.circle),
-                  child: Text('${lecturer.quotaLeft}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                ),
-              ],
+              ),
             ),
-            Text(lecturer.department.shortLabelLine1, style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11, fontWeight: FontWeight.w500)),
-            Text(lecturer.department.shortLabelLine2, style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11, fontWeight: FontWeight.w500)),
           ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          lecturer.bidangKeahlian,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Color(0xFF6B7280),
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImageFallback() {
+    return Container(
+      color: const Color(0xFFE5E7EB),
+      child: const Center(
+        child: Icon(
+          Icons.person_rounded,
+          color: Color(0xFF6B7280),
+          size: 42,
         ),
       ),
     );
@@ -419,19 +716,42 @@ class _LecturerCard extends StatelessWidget {
 }
 
 class _DropdownRadioTile extends StatelessWidget {
-  const _DropdownRadioTile({required this.title, required this.isSelected, required this.onTap});
-  final String title; final bool isSelected; final VoidCallback onTap;
+  const _DropdownRadioTile({
+    required this.title,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String title;
+  final bool isSelected;
+  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
         child: Row(
           children: [
-            Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_off, size: 20, color: isSelected ? const Color(0xFF0D4AA3) : Colors.grey),
+            Icon(
+              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+              size: 20,
+              color: isSelected ? const Color(0xFF0D4AA3) : Colors.grey,
+            ),
             const SizedBox(width: 12),
-            Text(title, style: TextStyle(fontSize: 14, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500)),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -440,50 +760,72 @@ class _DropdownRadioTile extends StatelessWidget {
 }
 
 class LecturerModel {
-  const LecturerModel({required this.id, required this.name, required this.department, required this.imageUrl, required this.quotaLeft, required this.nid});
-  final String id; final String name; final LecturerDepartment department; final String imageUrl; final int quotaLeft; final String nid;
+  const LecturerModel({
+    required this.id,
+    required this.name,
+    required this.bidangKeahlian,
+    required this.imageUrl,
+    required this.quotaLeft,
+    required this.nid,
+    this.email,
+    this.profilSingkat,
+  });
 
-  String get displayName => '$name, S.tu, V.wx';
+  final String id;
+  final String name;
+  final String bidangKeahlian;
+  final String imageUrl;
+  final int quotaLeft;
+  final String nid;
+  final String? email;
+  final String? profilSingkat;
+
+  String get displayName => name;
+
+  factory LecturerModel.fromJson(Map<String, dynamic> json) {
+    final dosenId = json['dosen_id']?.toString() ?? '';
+
+    return LecturerModel(
+      id: dosenId,
+      name: json['nama']?.toString() ?? '-',
+      bidangKeahlian: json['bidang_keahlian']?.toString() ?? '-',
+      nid: json['nid']?.toString() ?? '-',
+      quotaLeft: int.tryParse(json['sisa_kuota']?.toString() ?? '') ?? 0,
+      email: json['email']?.toString(),
+      profilSingkat: json['profil_singkat']?.toString(),
+      imageUrl: _getLecturerPlaceholderImage(dosenId),
+    );
+  }
 }
 
-enum LecturerDepartment { informatics, business, electrical, mechanical, artsAndCulture }
-extension LecturerDepartmentX on LecturerDepartment {
-  String get label {
-    switch (this) {
-      case LecturerDepartment.informatics: return 'Informatics Engineering';
-      case LecturerDepartment.business: return 'Business Management';
-      case LecturerDepartment.electrical: return 'Electrical Engineering';
-      case LecturerDepartment.mechanical: return 'Machine Engineering';
-      case LecturerDepartment.artsAndCulture: return 'Arts and Cultural';
-    }
-  }
-  String get shortLabelLine1 {
-    switch (this) {
-      case LecturerDepartment.informatics: return 'Informatics';
-      case LecturerDepartment.business: return 'Business';
-      case LecturerDepartment.electrical: return 'Electrical';
-      case LecturerDepartment.mechanical: return 'Machine';
-      case LecturerDepartment.artsAndCulture: return 'Arts and Cultural';
-    }
-  }
-  String get shortLabelLine2 {
-    switch (this) {
-      case LecturerDepartment.informatics: return 'Engineering';
-      case LecturerDepartment.business: return 'Management';
-      case LecturerDepartment.electrical: return 'Engineering';
-      case LecturerDepartment.mechanical: return 'Engineering';
-      case LecturerDepartment.artsAndCulture: return '';
-    }
-  }
+String _getLecturerPlaceholderImage(String dosenId) {
+  const images = [
+    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80',
+  ];
+
+  final idNumber = int.tryParse(dosenId) ?? 0;
+  return images[idNumber % images.length];
 }
 
-enum LecturerViewType { extraLarge, large, standard }
+enum LecturerViewType {
+  extraLarge,
+  large,
+  standard,
+}
+
 extension LecturerViewTypeX on LecturerViewType {
   String get label {
     switch (this) {
-      case LecturerViewType.extraLarge: return 'Extra Large List';
-      case LecturerViewType.large: return 'Large List';
-      case LecturerViewType.standard: return 'Standard List';
+      case LecturerViewType.extraLarge:
+        return 'Extra Large List';
+      case LecturerViewType.large:
+        return 'Large List';
+      case LecturerViewType.standard:
+        return 'Standard List';
     }
   }
 }
