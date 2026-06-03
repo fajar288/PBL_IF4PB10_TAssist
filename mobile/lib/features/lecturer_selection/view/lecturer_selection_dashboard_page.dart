@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../../app/app.dart';
-import 'lecturers_page.dart';
-import 'mentoring_request_store.dart';
-import 'lecturer_detail_page.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import '../../../app/app.dart';
+import '../../auth/data/auth_service.dart';
+import '../../../mahasiswa/data/mahasiswa_service.dart';
+import 'lecturers_page.dart';
 
 class LecturerSelectionDashboardPage extends StatefulWidget {
   const LecturerSelectionDashboardPage({super.key});
@@ -15,6 +16,9 @@ class LecturerSelectionDashboardPage extends StatefulWidget {
 
 class _LecturerSelectionDashboardPageState
     extends State<LecturerSelectionDashboardPage> {
+  final MahasiswaService _mahasiswaService = MahasiswaService();
+  final AuthService _authService = AuthService();
+
   final List<LecturerCategory> categories = const [
     LecturerCategory(
       title: 'AI & Machine Learning Lecturers',
@@ -48,7 +52,46 @@ class _LecturerSelectionDashboardPageState
     ),
   ];
 
-  void _logout() {
+  List<Map<String, dynamic>> _permohonanList = [];
+  bool _isLoadingPermohonan = true;
+  String? _permohonanError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPermohonan();
+  }
+
+  Future<void> _loadPermohonan() async {
+    setState(() {
+      _isLoadingPermohonan = true;
+      _permohonanError = null;
+    });
+
+    try {
+      final rows = await _mahasiswaService.getPermohonan(perPage: 20);
+
+      if (!mounted) return;
+
+      setState(() {
+        _permohonanList = rows;
+        _isLoadingPermohonan = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _permohonanError = e.toString().replaceFirst('Exception: ', '');
+        _isLoadingPermohonan = false;
+      });
+    }
+  }
+
+  Future<void> _logout() async {
+    await _authService.logout();
+
+    if (!mounted) return;
+
     Navigator.pushNamedAndRemoveUntil(
       context,
       TAssistApp.loginRoute,
@@ -56,8 +99,8 @@ class _LecturerSelectionDashboardPageState
     );
   }
 
-  void _openLecturersPage({String? bidangKeahlian}) {
-    Navigator.push(
+  Future<void> _openLecturersPage({String? bidangKeahlian}) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => LecturersPage(
@@ -65,24 +108,102 @@ class _LecturerSelectionDashboardPageState
         ),
       ),
     );
+
+    if (!mounted) return;
+
+    _loadPermohonan();
   }
 
-  void _openRequestedLecturerDetail(RequestedLecturer request) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => LecturerDetailPage(
-          lecturer: LecturerModel(
-            id: request.id,
-            name: request.name,
-            bidangKeahlian: request.major,
-            imageUrl: request.imageUrl,
-            quotaLeft: request.guidanceQuotaLeft,
-            nid: request.nid,
+  void _showPermohonanDetail(Map<String, dynamic> request) {
+    final dosen = request['dosen'] is Map
+        ? Map<String, dynamic>.from(request['dosen'])
+        : <String, dynamic>{};
+
+    final namaDosen = dosen['nama']?.toString() ?? '-';
+    final bidangKeahlian = dosen['bidang_keahlian']?.toString() ?? '-';
+    final topikTa = request['topik_ta']?.toString() ?? '-';
+    final tanggal = request['tanggal_pengajuan']?.toString() ?? '-';
+    final status = request['status']?.toString() ?? '-';
+    final catatan = request['catatan_respons']?.toString();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Counseling Request'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _dialogLine('Lecturer', namaDosen),
+              const SizedBox(height: 8),
+              _dialogLine('Expertise', bidangKeahlian),
+              const SizedBox(height: 8),
+              _dialogLine('Topic', topikTa),
+              const SizedBox(height: 8),
+              _dialogLine('Submitted', tanggal),
+              const SizedBox(height: 8),
+              _dialogLine('Status', _formatStatus(status)),
+              if (catatan != null && catatan.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _dialogLine('Response Note', catatan),
+              ],
+            ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _dialogLine(String label, String value) {
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(
+          color: Color(0xFF111111),
+          fontSize: 14,
+          height: 1.35,
         ),
+        children: [
+          TextSpan(
+            text: '$label: ',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          TextSpan(text: value),
+        ],
       ),
     );
+  }
+
+  String _formatStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'menunggu':
+        return 'Waiting';
+      case 'diterima':
+        return 'Accepted';
+      case 'ditolak':
+        return 'Rejected';
+      default:
+        return status;
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'menunggu':
+        return const Color(0xFFFFA000);
+      case 'diterima':
+        return const Color(0xFF2E7D32);
+      case 'ditolak':
+        return const Color(0xFFC62828);
+      default:
+        return const Color(0xFF6B7280);
+    }
   }
 
   @override
@@ -90,23 +211,26 @@ class _LecturerSelectionDashboardPageState
     return Scaffold(
       backgroundColor: const Color(0xFFEEF2F6),
       extendBody: true,
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          children: [
-            _buildHeader(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 100),
-              child: Column(
-                children: [
-                  _buildTopCard(),
-                  const SizedBox(height: 18),
-                  _buildBottomRequestList(),
-                  const SizedBox(height: 20),
-                ],
+      body: RefreshIndicator(
+        onRefresh: _loadPermohonan,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              _buildHeader(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 100),
+                child: Column(
+                  children: [
+                    _buildTopCard(),
+                    const SizedBox(height: 18),
+                    _buildBottomRequestList(),
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -170,8 +294,11 @@ class _LecturerSelectionDashboardPageState
               GestureDetector(
                 onTap: _logout,
                 child: Container(
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.18),
                     border: Border.all(
                       color: Colors.white.withOpacity(0.4),
                       width: 2.5,
@@ -184,25 +311,12 @@ class _LecturerSelectionDashboardPageState
                       ),
                     ],
                   ),
-                  child: ClipOval(
-                    child: Image.network(
-                      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 56,
-                        height: 56,
-                        color: Colors.white24,
-                        child: const Center(
-                          child: Text(
-                            'AF',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+                  child: const Center(
+                    child: Text(
+                      'AF',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
@@ -289,58 +403,97 @@ class _LecturerSelectionDashboardPageState
   }
 
   Widget _buildBottomRequestList() {
-    return ValueListenableBuilder<List<RequestedLecturer>>(
-      valueListenable: MentoringRequestStore.requests,
-      builder: (context, requestList, _) {
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.black.withOpacity(0.05)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
-          child: requestList.isEmpty
-              ? const SizedBox(
-                  height: 100,
-                  child: Center(
-                    child: Text(
-                      "there's nothing here...",
-                      style: TextStyle(
-                        color: Color(0xFF7D848C),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                )
-              : Column(
-                  children: requestList
-                      .map(
-                        (request) => Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _buildRequestItem(request),
+        ],
+      ),
+      child: _isLoadingPermohonan
+          ? const SizedBox(
+              height: 100,
+              child: Center(child: CircularProgressIndicator()),
+            )
+          : _permohonanError != null
+              ? _buildRequestError()
+              : _permohonanList.isEmpty
+                  ? const SizedBox(
+                      height: 100,
+                      child: Center(
+                        child: Text(
+                          "there's nothing here...",
+                          style: TextStyle(
+                            color: Color(0xFF7D848C),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      )
-                      .toList(),
-                ),
-        );
-      },
+                      ),
+                    )
+                  : Column(
+                      children: _permohonanList
+                          .map(
+                            (request) => Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _buildRequestItem(request),
+                            ),
+                          )
+                          .toList(),
+                    ),
     );
   }
 
-  Widget _buildRequestItem(RequestedLecturer request) {
+  Widget _buildRequestError() {
+    return SizedBox(
+      height: 130,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Colors.redAccent,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _permohonanError ?? 'Failed to load request.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.black54,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _loadPermohonan,
+            child: const Text('Try Again'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequestItem(Map<String, dynamic> request) {
+    final dosen = request['dosen'] is Map
+        ? Map<String, dynamic>.from(request['dosen'])
+        : <String, dynamic>{};
+
+    final namaDosen = dosen['nama']?.toString() ?? '-';
+    final bidangKeahlian = dosen['bidang_keahlian']?.toString() ?? '-';
+    final status = request['status']?.toString() ?? '-';
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _openRequestedLecturerDetail(request),
+        onTap: () => _showPermohonanDetail(request),
         borderRadius: BorderRadius.circular(14),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -359,27 +512,47 @@ class _LecturerSelectionDashboardPageState
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundImage: NetworkImage(request.imageUrl),
+                backgroundColor: Colors.white.withOpacity(0.2),
+                child: Text(
+                  _initials(namaDosen),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Requested Counseling',
+                    Text(
+                      _formatStatus(status),
                       style: TextStyle(
-                        color: Colors.white70,
+                        color: _statusColor(status),
                         fontSize: 10,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     Text(
-                      'with Mr. ${request.name}',
+                      'with Mr. $namaDosen',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      bidangKeahlian,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -395,6 +568,22 @@ class _LecturerSelectionDashboardPageState
         ),
       ),
     );
+  }
+
+  String _initials(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    if (parts.isEmpty) return '?';
+
+    if (parts.length == 1) {
+      return parts.first.substring(0, 1).toUpperCase();
+    }
+
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
   }
 }
 
@@ -438,13 +627,13 @@ class _LecturerBannerCard extends StatelessWidget {
           ),
           child: Text(
             title,
+            textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 15,
               fontWeight: FontWeight.w800,
               letterSpacing: 0.5,
             ),
-            textAlign: TextAlign.center,
           ),
         ),
       ),

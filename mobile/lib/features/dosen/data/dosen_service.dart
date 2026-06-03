@@ -1,133 +1,328 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../core/api_config.dart';
+import '../../auth/data/auth_service.dart';
 
 class DosenService {
-  static const String baseUrl = 'http://127.0.0.1:8000/api/v1';
+  final AuthService _authService = AuthService();
 
-  Future<Map<String, String>> _headers() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+  Future<Map<String, String>> _headers({bool json = false}) async {
+    final token = await _authService.getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('Token tidak ditemukan. Silakan login ulang.');
+    }
 
     return {
       'Accept': 'application/json',
       'Authorization': 'Bearer $token',
+      if (json) 'Content-Type': 'application/json',
     };
+  }
+
+  Uri _uri(String path, [Map<String, dynamic>? query]) {
+    final uri = Uri.parse('${ApiConfig.baseUrl}$path');
+
+    if (query == null || query.isEmpty) return uri;
+
+    final cleanQuery = <String, String>{};
+
+    query.forEach((key, value) {
+      if (value != null && value.toString().trim().isNotEmpty) {
+        cleanQuery[key] = value.toString();
+      }
+    });
+
+    return uri.replace(queryParameters: cleanQuery);
+  }
+
+  Map<String, dynamic> _decodeResponse(http.Response response) {
+    dynamic decodedBody;
+
+    try {
+      decodedBody = jsonDecode(response.body);
+    } catch (_) {
+      throw Exception('Response server tidak valid. Status: ${response.statusCode}');
+    }
+
+    if (decodedBody is! Map) {
+      throw Exception('Format response server tidak valid.');
+    }
+
+    final decoded = Map<String, dynamic>.from(decodedBody);
+    final success = decoded['success'] == true;
+
+    if (response.statusCode < 200 || response.statusCode >= 300 || !success) {
+      throw Exception(_errorMessageFromDecoded(decoded));
+    }
+
+    return decoded;
+  }
+
+  String _errorMessageFromDecoded(Map<String, dynamic> decoded) {
+    final message = decoded['message']?.toString() ?? 'Request gagal.';
+    final errors = decoded['errors'];
+
+    if (errors is Map && errors.isNotEmpty) {
+      final details = <String>[];
+
+      errors.forEach((_, value) {
+        if (value is List) {
+          details.addAll(value.map((item) => item.toString()));
+        } else if (value != null) {
+          details.add(value.toString());
+        }
+      });
+
+      if (details.isNotEmpty) {
+        return '$message\n${details.join('\n')}';
+      }
+    }
+
+    return message;
+  }
+
+  List<Map<String, dynamic>> _extractPaginatorList(Map<String, dynamic> decoded) {
+    final rootData = decoded['data'];
+
+    dynamic rows;
+
+    if (rootData is Map<String, dynamic> && rootData['data'] is List) {
+      rows = rootData['data'];
+    } else if (rootData is List) {
+      rows = rootData;
+    } else {
+      rows = const [];
+    }
+
+    return (rows as List)
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
   }
 
   Future<Map<String, dynamic>> getProfile() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/dosen/profile'),
+      _uri('/dosen/profile'),
       headers: await _headers(),
     );
 
-    return _handleResponse(response);
+    return _decodeResponse(response);
   }
 
   Future<Map<String, dynamic>> getPermohonan() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/dosen/permohonan'),
+      _uri('/dosen/permohonan'),
       headers: await _headers(),
     );
 
-    return _handleResponse(response);
+    return _decodeResponse(response);
   }
 
   Future<Map<String, dynamic>> terimaPermohonan(int id) async {
     final response = await http.put(
-      Uri.parse('$baseUrl/dosen/permohonan/$id/terima'),
+      _uri('/dosen/permohonan/$id/terima'),
       headers: await _headers(),
     );
 
-    return _handleResponse(response);
+    return _decodeResponse(response);
   }
 
   Future<Map<String, dynamic>> tolakPermohonan(int id) async {
     final response = await http.put(
-      Uri.parse('$baseUrl/dosen/permohonan/$id/tolak'),
+      _uri('/dosen/permohonan/$id/tolak'),
       headers: await _headers(),
     );
 
-    return _handleResponse(response);
+    return _decodeResponse(response);
   }
 
-  Future<Map<String, dynamic>> getMahasiswaBimbingan() async {
+  Future<Map<String, dynamic>> getMahasiswaBimbingan({
+    String? status,
+    int perPage = 30,
+  }) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/dosen/mahasiswa-bimbingan'),
+      _uri('/dosen/mahasiswa-bimbingan', {
+        'status': status,
+        'per_page': perPage,
+      }),
       headers: await _headers(),
     );
 
-    return _handleResponse(response);
+    return _decodeResponse(response);
   }
 
-  Future<Map<String, dynamic>> getProgresMahasiswa(int mahasiswaId) async {
+  Future<List<Map<String, dynamic>>> getMahasiswaBimbinganList({
+    String? status,
+    int perPage = 30,
+  }) async {
+    final decoded = await getMahasiswaBimbingan(
+      status: status,
+      perPage: perPage,
+    );
+
+    return _extractPaginatorList(decoded);
+  }
+
+  Future<Map<String, dynamic>> getProgresMahasiswa(int bimbinganId) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/dosen/mahasiswa-bimbingan/$mahasiswaId/progres'),
+      _uri('/dosen/mahasiswa-bimbingan/$bimbinganId/progres'),
       headers: await _headers(),
     );
 
-    return _handleResponse(response);
+    return _decodeResponse(response);
+  }
+
+  Future<Map<String, dynamic>> getDokumenMahasiswa({
+    required int bimbinganId,
+    int perPage = 30,
+  }) async {
+    final response = await http.get(
+      _uri('/dosen/mahasiswa-bimbingan/$bimbinganId/dokumen', {
+        'per_page': perPage,
+      }),
+      headers: await _headers(),
+    );
+
+    return _decodeResponse(response);
+  }
+
+  Future<List<Map<String, dynamic>>> getDokumenMahasiswaList({
+    required int bimbinganId,
+    int perPage = 30,
+  }) async {
+    final decoded = await getDokumenMahasiswa(
+      bimbinganId: bimbinganId,
+      perPage: perPage,
+    );
+
+    final rootData = decoded['data'];
+
+    if (rootData is Map<String, dynamic>) {
+      final dokumenRaw = rootData['dokumen'];
+
+      if (dokumenRaw is Map<String, dynamic> && dokumenRaw['data'] is List) {
+        return (dokumenRaw['data'] as List)
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+      }
+
+      if (dokumenRaw is List) {
+        return dokumenRaw
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+      }
+    }
+
+    return [];
+  }
+
+  Future<Map<String, dynamic>> getRiwayatVersiDokumen({
+    required int dokumenId,
+    int perPage = 30,
+  }) async {
+    final response = await http.get(
+      _uri('/dosen/dokumen/$dokumenId/versi', {
+        'per_page': perPage,
+      }),
+      headers: await _headers(),
+    );
+
+    return _decodeResponse(response);
+  }
+
+  Future<List<Map<String, dynamic>>> getRiwayatVersiDokumenList({
+    required int dokumenId,
+    int perPage = 30,
+  }) async {
+    final decoded = await getRiwayatVersiDokumen(
+      dokumenId: dokumenId,
+      perPage: perPage,
+    );
+
+    final rootData = decoded['data'];
+
+    if (rootData is Map<String, dynamic>) {
+      final versiRaw = rootData['versi'];
+
+      if (versiRaw is Map<String, dynamic> && versiRaw['data'] is List) {
+        return (versiRaw['data'] as List)
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+      }
+
+      if (versiRaw is List) {
+        return versiRaw
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+      }
+    }
+
+    return [];
   }
 
   Future<Map<String, dynamic>> getFeedback() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/dosen/feedback'),
+      _uri('/dosen/feedback'),
       headers: await _headers(),
     );
 
-    return _handleResponse(response);
+    return _decodeResponse(response);
   }
 
   Future<Map<String, dynamic>> storeFeedback({
-    required int dokumenId,
-    required String isiFeedback,
+    required int versiId,
+    required String komentar,
+    int? halaman,
+    String? posisiAnotasi,
   }) async {
+    final body = <String, dynamic>{
+      'versi_id': versiId,
+      'komentar': komentar.trim(),
+      if (halaman != null) 'halaman': halaman,
+      if (posisiAnotasi != null && posisiAnotasi.trim().isNotEmpty)
+        'posisi_anotasi': posisiAnotasi.trim(),
+    };
+
     final response = await http.post(
-      Uri.parse('$baseUrl/dosen/feedback'),
-      headers: await _headers(),
-      body: {
-        'dokumen_id': dokumenId.toString(),
-        'isi_feedback': isiFeedback,
-      },
+      _uri('/dosen/feedback'),
+      headers: await _headers(json: true),
+      body: jsonEncode(body),
     );
 
-    return _handleResponse(response);
+    return _decodeResponse(response);
   }
 
   Future<Map<String, dynamic>> getJadwal() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/dosen/jadwal'),
+      _uri('/dosen/jadwal'),
       headers: await _headers(),
     );
 
-    return _handleResponse(response);
+    return _decodeResponse(response);
   }
 
   Future<Map<String, dynamic>> konfirmasiJadwal(int id) async {
     final response = await http.put(
-      Uri.parse('$baseUrl/dosen/jadwal/$id/konfirmasi'),
+      _uri('/dosen/jadwal/$id/konfirmasi'),
       headers: await _headers(),
     );
 
-    return _handleResponse(response);
+    return _decodeResponse(response);
   }
 
   Future<Map<String, dynamic>> getNotifikasi() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/dosen/notifikasi'),
+      _uri('/dosen/notifikasi'),
       headers: await _headers(),
     );
 
-    return _handleResponse(response);
-  }
-
-  Map<String, dynamic> _handleResponse(http.Response response) {
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return data;
-    }
-
-    throw Exception(data['message'] ?? 'Terjadi kesalahan server.');
+    return _decodeResponse(response);
   }
 }

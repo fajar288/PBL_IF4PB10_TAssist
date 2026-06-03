@@ -5,6 +5,7 @@ import 'package:produk/data/dummy_data.dart';
 import 'package:produk/model/models.dart';
 import 'package:produk/widgets/student_info_card.dart';
 import 'package:produk/widgets/student_menu_title.dart';
+import 'package:produk/features/dosen/view/dosen_student_documents_page.dart';
 
 class StudentDetailPage extends StatefulWidget {
   final StudentModel student;
@@ -87,6 +88,15 @@ class _StudentDetailPageState extends State<StudentDetailPage>
   void dispose() {
     _animController.dispose();
     super.dispose();
+  }
+  
+  void _openDocumentsPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DosenStudentDocumentsPage(student: student),
+      ),
+    );
   }
 
   @override
@@ -443,43 +453,37 @@ class _StudentDetailPageState extends State<StudentDetailPage>
   }
 
   Widget _buildMenuActions(BuildContext context) {
-    final menus = [
-      (
-        'Progress',
-        'View academic progress & history',
-        Icons.trending_up_rounded,
-        const Color(0xFF6366F1),
-      ),
-      (
-        'Tasks',
-        '${student.taskCompleted} of ${student.taskCount} completed',
-        Icons.checklist_rounded,
-        const Color(0xFF22C55E),
-      ),
-      (
-        'Meetings',
-        '${student.meetingCount} sessions recorded',
-        Icons.video_call_rounded,
-        const Color(0xFF0EA5E9),
-      ),
-      (
-        'Documents',
-        'Uploaded files & reports',
-        Icons.folder_rounded,
-        const Color(0xFFF59E0B),
-      ),
-    ];
-
     return Column(
-      children: menus.map((m) {
-        return StudentMenuTile(
-          title: m.$1,
-          subtitle: m.$2,
-          icon: m.$3,
-          iconColor: m.$4,
-          onTap: () => _showSnackBar(context, '${m.$1} feature coming soon'),
-        );
-      }).toList(),
+      children: [
+        StudentMenuTile(
+          title: 'Progress',
+          subtitle: 'View academic progress & history',
+          icon: Icons.trending_up_rounded,
+          iconColor: const Color(0xFF6366F1),
+          onTap: () => _showSnackBar(context, 'Progress feature coming soon'),
+        ),
+        StudentMenuTile(
+          title: 'Tasks',
+          subtitle: '${student.taskCompleted} of ${student.taskCount} completed',
+          icon: Icons.checklist_rounded,
+          iconColor: const Color(0xFF22C55E),
+          onTap: () => _showSnackBar(context, 'Tasks feature coming soon'),
+        ),
+        StudentMenuTile(
+          title: 'Meetings',
+          subtitle: '${student.meetingCount} sessions recorded',
+          icon: Icons.video_call_rounded,
+          iconColor: const Color(0xFF0EA5E9),
+          onTap: () => _showSnackBar(context, 'Meetings feature coming soon'),
+        ),
+        StudentMenuTile(
+          title: 'Documents',
+          subtitle: 'Uploaded files & feedback',
+          icon: Icons.folder_rounded,
+          iconColor: const Color(0xFFF59E0B),
+          onTap: _openDocumentsPage,
+        ),
+      ],
     );
   }
 
