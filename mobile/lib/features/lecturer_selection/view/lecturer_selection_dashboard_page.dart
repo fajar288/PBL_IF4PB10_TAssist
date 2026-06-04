@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/app.dart';
 import '../../auth/data/auth_service.dart';
+import '../../notifikasi/widgets/notifikasi_bell_button.dart';
 import '../../../mahasiswa/data/mahasiswa_service.dart';
 import 'lecturers_page.dart';
 
@@ -18,6 +19,8 @@ class _LecturerSelectionDashboardPageState
     extends State<LecturerSelectionDashboardPage> {
   final MahasiswaService _mahasiswaService = MahasiswaService();
   final AuthService _authService = AuthService();
+
+  String _studentName = 'Student';
 
   final List<LecturerCategory> categories = const [
     LecturerCategory(
@@ -59,7 +62,46 @@ class _LecturerSelectionDashboardPageState
   @override
   void initState() {
     super.initState();
-    _loadPermohonan();
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    await Future.wait([
+      _loadProfile(),
+      _loadPermohonan(),
+    ]);
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final profileResponse = await _authService.getProfile();
+
+      final profileData = profileResponse?['data'];
+
+      String name = 'Student';
+
+      if (profileData is Map<String, dynamic>) {
+        final user = profileData['user'];
+
+        if (user is Map<String, dynamic>) {
+          name = user['nama']?.toString() ??
+              user['name']?.toString() ??
+              'Student';
+        }
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _studentName = name;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _studentName = 'Student';
+      });
+    }
   }
 
   Future<void> _loadPermohonan() async {
@@ -212,7 +254,7 @@ class _LecturerSelectionDashboardPageState
       backgroundColor: const Color(0xFFEEF2F6),
       extendBody: true,
       body: RefreshIndicator(
-        onRefresh: _loadPermohonan,
+        onRefresh: _loadDashboardData,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
@@ -272,7 +314,9 @@ class _LecturerSelectionDashboardPageState
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Aruna Fajar!',
+                      '$_studentName!',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.poppins(
                         color: Colors.white,
                         fontSize: 26,
@@ -291,37 +335,49 @@ class _LecturerSelectionDashboardPageState
                   ],
                 ),
               ),
-              GestureDetector(
-                onTap: _logout,
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.18),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.4),
-                      width: 2.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 20,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
+              Row(
+                children: [
+                  const NotifikasiBellButton(
+                    size: 38,
+                    iconColor: Colors.white,
+                    backgroundColor: Colors.white24,
+                    borderColor: Colors.white38,
+                    pageTitle: 'Notifications',
                   ),
-                  child: const Center(
-                    child: Text(
-                      'AF',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: _logout,
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.18),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.4),
+                          width: 2.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 20,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          _initials(_studentName),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
+                ],
+              )
             ],
           ),
         ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/app.dart';
 import '../auth/data/auth_service.dart';
+import '../notifikasi/widgets/notifikasi_bell_button.dart';
 import '../../mahasiswa/data/mahasiswa_service.dart';
 
 class DashboardMainMahasiswaPage extends StatefulWidget {
@@ -424,35 +425,47 @@ class _DashboardMainMahasiswaPageState
             ),
           ),
         ),
-        GestureDetector(
-          onTap: _logout,
-          child: Container(
-            width: 66,
-            height: 66,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF0D4AA3),
-              border: Border.all(color: Colors.white, width: 2),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+        Row(
+          children: [
+            const NotifikasiBellButton(
+              size: 38,
+              iconColor: Color(0xFF0D4AA3),
+              backgroundColor: Colors.white,
+              borderColor: Colors.white,
+              pageTitle: 'Notifications',
             ),
-            child: Center(
-              child: Text(
-                _initials(_studentName),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: _logout,
+              child: Container(
+                width: 66,
+                height: 66,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF0D4AA3),
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    _initials(_studentName),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
+          ],
+        )
       ],
     );
   }

@@ -5,6 +5,7 @@ import 'package:produk/data/dummy_data.dart';
 import 'package:produk/features/dosen/data/dosen_service.dart';
 
 import '../features/lecturer_selection/view/mentoring_request_store.dart';
+import '../features/notifikasi/widgets/notifikasi_bell_button.dart';
 import '../model/models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/custom_bottom_nav.dart';
@@ -296,44 +297,56 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  GestureDetector(
-                    onTap: _logout,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.4),
-                          width: 2.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 20,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
+                  Row(
+                    children: [
+                      const NotifikasiBellButton(
+                        size: 38,
+                        iconColor: Colors.white,
+                        backgroundColor: Colors.white24,
+                        borderColor: Colors.white38,
+                        pageTitle: 'Notifications',
                       ),
-                      child: ClipOval(
+                      const SizedBox(width: 10),
+                      GestureDetector(
+                        onTap: _logout,
                         child: Container(
-                          width: 56,
-                          height: 56,
-                          color: Colors.white24,
-                          child: Center(
-                            child: Text(
-                              avatarText,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.4),
+                              width: 2.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 20,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: Container(
+                              width: 56,
+                              height: 56,
+                              color: Colors.white24,
+                              child: Center(
+                                child: Text(
+                                  avatarText,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    )
-                        .animate()
-                        .fadeIn(duration: 500.ms, delay: 200.ms)
-                        .scale(begin: const Offset(0.8, 0.8)),
-                  ),
+                      )
+                          .animate()
+                          .fadeIn(duration: 500.ms, delay: 200.ms)
+                          .scale(begin: const Offset(0.8, 0.8)),
+                    ],
+                  )
                 ],
               ),
               const SizedBox(height: 22),
