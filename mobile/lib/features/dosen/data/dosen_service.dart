@@ -112,13 +112,31 @@ class DosenService {
     return _decodeResponse(response);
   }
 
-  Future<Map<String, dynamic>> getPermohonan() async {
+  Future<Map<String, dynamic>> getPermohonan({
+    String? status,
+    int perPage = 50,
+  }) async {
     final response = await http.get(
-      _uri('/dosen/permohonan'),
+      _uri('/dosen/permohonan', {
+        'status': status,
+        'per_page': perPage,
+      }),
       headers: await _headers(),
     );
 
     return _decodeResponse(response);
+  }
+
+  Future<List<Map<String, dynamic>>> getPermohonanList({
+    String? status,
+    int perPage = 50,
+  }) async {
+    final decoded = await getPermohonan(
+      status: status,
+      perPage: perPage,
+    );
+
+    return _extractPaginatorList(decoded);
   }
 
   Future<Map<String, dynamic>> terimaPermohonan(int id) async {
@@ -130,10 +148,16 @@ class DosenService {
     return _decodeResponse(response);
   }
 
-  Future<Map<String, dynamic>> tolakPermohonan(int id) async {
+  Future<Map<String, dynamic>> tolakPermohonan(
+    int id, {
+    required String catatanRespons,
+  }) async {
     final response = await http.put(
       _uri('/dosen/permohonan/$id/tolak'),
-      headers: await _headers(),
+      headers: await _headers(json: true),
+      body: jsonEncode({
+        'catatan_respons': catatanRespons.trim(),
+      }),
     );
 
     return _decodeResponse(response);
@@ -299,19 +323,50 @@ class DosenService {
     return _decodeResponse(response);
   }
 
-  Future<Map<String, dynamic>> getJadwal() async {
+  Future<Map<String, dynamic>> getJadwal({
+    String? status,
+    int perPage = 50,
+  }) async {
     final response = await http.get(
-      _uri('/dosen/jadwal'),
+      _uri('/dosen/jadwal', {
+        'status': status,
+        'per_page': perPage,
+      }),
       headers: await _headers(),
     );
 
     return _decodeResponse(response);
   }
 
-  Future<Map<String, dynamic>> konfirmasiJadwal(int id) async {
+  Future<List<Map<String, dynamic>>> getJadwalList({
+    String? status,
+    int perPage = 50,
+  }) async {
+    final decoded = await getJadwal(
+      status: status,
+      perPage: perPage,
+    );
+
+    return _extractPaginatorList(decoded);
+  }
+
+  Future<Map<String, dynamic>> konfirmasiJadwal(
+    int id, {
+    required String statusKonfirmasi,
+    String? mode,
+    String? catatan,
+  }) async {
+    final body = <String, dynamic>{
+      'status_konfirmasi': statusKonfirmasi,
+      if (mode != null && mode.trim().isNotEmpty) 'mode': mode.trim(),
+      if (catatan != null && catatan.trim().isNotEmpty)
+        'catatan': catatan.trim(),
+    };
+
     final response = await http.put(
       _uri('/dosen/jadwal/$id/konfirmasi'),
-      headers: await _headers(),
+      headers: await _headers(json: true),
+      body: jsonEncode(body),
     );
 
     return _decodeResponse(response);

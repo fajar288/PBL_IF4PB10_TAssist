@@ -435,7 +435,7 @@ class _SchedulePageState extends State<SchedulePage> {
               ),
               alignment: Alignment.center,
               child: const Text(
-                'Set Date and Time',
+                'Set Meeting schedule',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,

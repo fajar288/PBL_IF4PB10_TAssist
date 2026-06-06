@@ -62,7 +62,7 @@ class MeetingRequestCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Let\'s meet up on ${request.dayName}',
+                          'Scheduled on ${request.dayName}',
                           style: GoogleFonts.poppins(
                             color: AppTheme.primary,
                             fontSize: 12,

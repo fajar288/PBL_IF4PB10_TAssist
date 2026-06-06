@@ -2,9 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:produk/features/dosen/data/dosen_service.dart';
 import '../model/models.dart';
 import '../theme/app_theme.dart';
-import '../widgets/app_dialogs.dart';
 import '../widgets/custom_request_card.dart';
 
 class CounselingDetailScreen extends StatefulWidget {
@@ -17,7 +17,10 @@ class CounselingDetailScreen extends StatefulWidget {
 }
 
 class _CounselingDetailScreenState extends State<CounselingDetailScreen> {
+  final DosenService _dosenService = DosenService();
+
   RequestStatus? _localStatus;
+  bool _isProcessing = false;
 
   RequestStatus get currentStatus => _localStatus ?? widget.request.status;
   bool get isActionable => currentStatus == RequestStatus.pending;
@@ -334,9 +337,9 @@ class _CounselingDetailScreenState extends State<CounselingDetailScreen> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: () => _handleAccept(context),
+            onPressed: _isProcessing ? null : () => _handleAccept(context),
             icon: const Icon(Icons.check_circle_rounded, size: 20),
-            label: const Text('Accept Request'),
+            label: Text(_isProcessing ? 'Processing...' : 'Accept Request'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.accepted,
               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -358,7 +361,7 @@ class _CounselingDetailScreenState extends State<CounselingDetailScreen> {
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
-            onPressed: () => _handleDecline(context),
+            onPressed: _isProcessing ? null : () => _handleDecline(context),
             icon: const Icon(Icons.close_rounded, size: 20),
             label: const Text('Decline Request'),
             style: OutlinedButton.styleFrom(
@@ -429,15 +432,194 @@ class _CounselingDetailScreenState extends State<CounselingDetailScreen> {
   }
 
   Future<void> _handleAccept(BuildContext context) async {
-    setState(() => _localStatus = RequestStatus.accepted);
-    await showAcceptedDialog(context);
+    final id = int.tryParse(widget.request.id);
+
+    if (id == null) {
+      _showError('ID permohonan tidak valid.');
+      return;
+    }
+
+    final confirmed = await _showConfirmDialog(
+      title: 'Accept Request?',
+      message: 'Are you sure you want to accept this counseling request?',
+      confirmText: 'Accept',
+      confirmColor: AppTheme.accepted,
+    );
+
+    if (!confirmed || !mounted) return;
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    try {
+      await _dosenService.terimaPermohonan(id);
+
+      if (!mounted) return;
+
+      setState(() {
+        _localStatus = RequestStatus.accepted;
+        _isProcessing = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Permohonan berhasil diterima.'),
+        ),
+      );
+
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isProcessing = false;
+      });
+
+      _showError(e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   Future<void> _handleDecline(BuildContext context) async {
-    final confirmed = await showDeclineConfirmDialog(context);
-    if (!confirmed || !mounted) return;
-    await showApologyDialog(context);
-    if (mounted) setState(() => _localStatus = RequestStatus.declined);
+    final id = int.tryParse(widget.request.id);
+
+    if (id == null) {
+      _showError('ID permohonan tidak valid.');
+      return;
+    }
+
+    final note = await _showDeclineNoteDialog();
+
+    if (note == null || note.trim().isEmpty || !mounted) return;
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    try {
+      await _dosenService.tolakPermohonan(
+        id,
+        catatanRespons: note,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _localStatus = RequestStatus.declined;
+        _isProcessing = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Permohonan berhasil ditolak.'),
+        ),
+      );
+
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isProcessing = false;
+      });
+
+      _showError(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Future<bool> _showConfirmDialog({
+    required String title,
+    required String message,
+    required String confirmText,
+    required Color confirmColor,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: confirmColor,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(confirmText),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result == true;
+  }
+
+  Future<String?> _showDeclineNoteDialog() async {
+    final controller = TextEditingController();
+
+    final result = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Decline Request'),
+          content: TextField(
+            controller: controller,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              labelText: 'Reason',
+              hintText: 'Write the reason for declining this request...',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final text = controller.text.trim();
+
+                if (text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Alasan penolakan wajib diisi.'),
+                    ),
+                  );
+                  return;
+                }
+
+                Navigator.pop(context, text);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.declined,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Decline'),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+    return result;
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppTheme.declined,
+      ),
+    );
   }
 }
 

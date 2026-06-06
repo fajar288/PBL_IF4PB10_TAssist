@@ -1,7 +1,6 @@
 // lib/features/dosen/view/student_detail_page.dart
 
 import 'package:flutter/material.dart';
-import 'package:produk/data/dummy_data.dart';
 import 'package:produk/model/models.dart';
 import 'package:produk/widgets/student_info_card.dart';
 import 'package:produk/widgets/student_menu_title.dart';

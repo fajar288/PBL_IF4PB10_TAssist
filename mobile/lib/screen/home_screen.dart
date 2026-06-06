@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:produk/data/dummy_data.dart';
 import 'package:produk/features/dosen/data/dosen_service.dart';
 
-import '../features/lecturer_selection/view/mentoring_request_store.dart';
 import '../features/notifikasi/widgets/notifikasi_bell_button.dart';
 import '../model/models.dart';
 import '../theme/app_theme.dart';
@@ -22,16 +20,19 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final DosenService _dosenService = DosenService();
 
-  late Future<Map<String, dynamic>> _profileFuture;
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  _DosenHeaderData _headerData = const _DosenHeaderData(
+    nama: 'Dosen',
+    subtitle: 'Dosen Pembimbing',
+    avatarText: 'D',
+  );
+
+  List<CounselingRequest> _requests = [];
 
   String _selectedFilter = 'All';
   final _filters = ['All', 'Pending', 'Accepted', 'Declined'];
-
-  final List<Map<String, String>> _simulationRequests = const [
-    {'name': 'Aruna Fajar Prayoga', 'avatar': 'A'},
-    {'name': 'Eleanor Pena', 'avatar': 'E'},
-    {'name': 'Ralph Edwards', 'avatar': 'R'},
-  ];
 
   static const Color _navBlue = Color(0xFF0D4AA3);
   static const Color _navBlueDark = Color(0xFF082E6B);
@@ -40,25 +41,54 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _profileFuture = _dosenService.getProfile();
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final profileResponse = await _dosenService.getProfile();
+      final permohonanRows = await _dosenService.getPermohonanList(
+        perPage: 50,
+      );
+
+      final requests = permohonanRows
+          .map(CounselingRequest.fromPermohonanJson)
+          .toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        _headerData = _parseProfileResponse(profileResponse);
+        _requests = requests;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _isLoading = false;
+      });
+    }
   }
 
   List<CounselingRequest> get _filteredRequests {
-    if (_selectedFilter == 'All') return DummyData.counselingRequests;
+    if (_selectedFilter == 'All') return _requests;
 
     final status = RequestStatus.values.firstWhere(
       (s) => s.label == _selectedFilter,
     );
 
-    return DummyData.counselingRequests
-        .where((r) => r.status == status)
-        .toList();
+    return _requests.where((r) => r.status == status).toList();
   }
 
-  Future<void> _refreshProfile() async {
-    setState(() {
-      _profileFuture = _dosenService.getProfile();
-    });
+  int _countByStatus(RequestStatus status) {
+    return _requests.where((r) => r.status == status).length;
   }
 
   void _logout() {
@@ -70,92 +100,107 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: RefreshIndicator(
-        onRefresh: _refreshProfile,
+        onRefresh: _loadDashboardData,
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(
             parent: AlwaysScrollableScrollPhysics(),
           ),
           slivers: [
             SliverToBoxAdapter(
-              child: FutureBuilder<Map<String, dynamic>>(
-                future: _profileFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return _buildHeader(
-                      context,
-                      nama: 'Loading...',
-                      subtitle: 'Memuat profil dosen...',
-                      avatarText: 'LD',
-                    );
-                  }
-
-                  if (snapshot.hasError) {
-                    return _buildHeader(
-                      context,
-                      nama: 'Dosen',
-                      subtitle: 'Gagal memuat profil',
-                      avatarText: 'D',
-                    );
-                  }
-
-                  final profileData = _parseProfileResponse(snapshot.data);
-
-                  return _buildHeader(
-                    context,
-                    nama: profileData.nama,
-                    subtitle: profileData.subtitle,
-                    avatarText: profileData.avatarText,
-                  );
-                },
+              child: _buildHeader(
+                context,
+                nama: _headerData.nama,
+                subtitle: _headerData.subtitle,
+                avatarText: _headerData.avatarText,
               ),
-            ),
-
-            ValueListenableBuilder<bool>(
-              valueListenable: MentoringRequestStore.isApproved,
-              builder: (context, approved, _) {
-                if (approved) {
-                  return const SliverToBoxAdapter(child: SizedBox.shrink());
-                }
-
-                return SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                    child: _buildSimulationCard(),
-                  ),
-                );
-              },
             ),
 
             SliverToBoxAdapter(child: _buildFilterRow()),
 
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                8,
-                20,
-                CustomBottomNav.navBarHeight +
-                    CustomBottomNav.bottomPadding +
-                    16,
-              ),
-              sliver: _filteredRequests.isEmpty
-                  ? const SliverToBoxAdapter(child: _EmptyState())
-                  : SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (ctx, i) {
-                          final request = _filteredRequests[i];
+            if (_isLoading)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 80),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              )
+            else if (_errorMessage != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 30, 20, 0),
+                  child: _buildErrorCard(),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  8,
+                  20,
+                  CustomBottomNav.navBarHeight +
+                      CustomBottomNav.bottomPadding +
+                      16,
+                ),
+                sliver: _filteredRequests.isEmpty
+                    ? const SliverToBoxAdapter(child: _EmptyState())
+                    : SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (ctx, i) {
+                            final request = _filteredRequests[i];
 
-                          return CounselingRequestCard(
-                            request: request,
-                            animationIndex: i,
-                            onTap: () => _openDetail(ctx, request),
-                          );
-                        },
-                        childCount: _filteredRequests.length,
+                            return CounselingRequestCard(
+                              request: request,
+                              animationIndex: i,
+                              onTap: () => _openDetail(ctx, request),
+                            );
+                          },
+                          childCount: _filteredRequests.length,
+                        ),
                       ),
-                    ),
-            ),
+              ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildErrorCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: AppTheme.cardDecoration(),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Colors.redAccent,
+            size: 42,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Failed to load requests',
+            style: GoogleFonts.poppins(
+              color: AppTheme.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _errorMessage ?? '-',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              color: AppTheme.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ElevatedButton.icon(
+            onPressed: _loadDashboardData,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Try Again'),
+          ),
+        ],
       ),
     );
   }
@@ -346,7 +391,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           .fadeIn(duration: 500.ms, delay: 200.ms)
                           .scale(begin: const Offset(0.8, 0.8)),
                     ],
-                  )
+                  ),
                 ],
               ),
               const SizedBox(height: 22),
@@ -354,25 +399,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   _StatChip(
                     label: 'Pending',
-                    count: DummyData.counselingRequests
-                        .where((r) => r.status == RequestStatus.pending)
-                        .length,
+                    count: _countByStatus(RequestStatus.pending),
                     color: AppTheme.pending,
                   ),
                   const SizedBox(width: 10),
                   _StatChip(
                     label: 'Accepted',
-                    count: DummyData.counselingRequests
-                        .where((r) => r.status == RequestStatus.accepted)
-                        .length,
+                    count: _countByStatus(RequestStatus.accepted),
                     color: AppTheme.accepted,
                   ),
                   const SizedBox(width: 10),
                   _StatChip(
                     label: 'Declined',
-                    count: DummyData.counselingRequests
-                        .where((r) => r.status == RequestStatus.declined)
-                        .length,
+                    count: _countByStatus(RequestStatus.declined),
                     color: AppTheme.declined,
                   ),
                 ],
@@ -380,108 +419,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildSimulationCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.mail_rounded,
-                color: _navBlue,
-                size: 22,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Example: New Requests',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ..._simulationRequests.map(
-            (req) => Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: _navBlue,
-                    child: Text(
-                      req['avatar']!,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      req['name']!,
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      MentoringRequestStore.approve();
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Berhasil menyetujui request!'),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: _navBlue,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      'Accept',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -515,13 +452,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _openDetail(BuildContext context, CounselingRequest request) {
-    Navigator.push(
+  Future<void> _openDetail(
+    BuildContext context,
+    CounselingRequest request,
+  ) async {
+    final changed = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => CounselingDetailScreen(request: request),
       ),
     );
+
+    if (changed == true && mounted) {
+      _loadDashboardData();
+    }
   }
 }
 

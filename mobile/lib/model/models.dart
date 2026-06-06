@@ -4,7 +4,7 @@ import '../theme/app_theme.dart';
 export '../theme/app_theme.dart' show RequestStatus;
 
 class CounselingRequest {
-  final String id;
+  final String id; // data real: permohonan_id
   final String studentName;
   final String nim;
   final String major;
@@ -24,12 +24,51 @@ class CounselingRequest {
     this.message = '',
   });
 
-  String get initials {
-    final parts = studentName.trim().split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  factory CounselingRequest.fromPermohonanJson(Map<String, dynamic> json) {
+    final mahasiswaRaw = json['mahasiswa'];
+    final mahasiswa = mahasiswaRaw is Map
+        ? Map<String, dynamic>.from(mahasiswaRaw)
+        : <String, dynamic>{};
+
+    final studentName = mahasiswa['nama']?.toString() ?? '-';
+
+    return CounselingRequest(
+      id: json['permohonan_id']?.toString() ?? '',
+      studentName: studentName,
+      nim: mahasiswa['nim']?.toString() ?? '-',
+      major: mahasiswa['prodi']?.toString() ?? '-',
+      avatarUrl: '',
+      status: _statusFromBackend(json['status']?.toString()),
+      requestDate: _parseDate(json['tanggal_pengajuan']?.toString()),
+      message: json['topik_ta']?.toString() ?? '',
+    );
+  }
+
+  String get initials => _initialsFromName(studentName);
+
+  static RequestStatus _statusFromBackend(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'menunggu':
+        return RequestStatus.pending;
+      case 'diterima':
+        return RequestStatus.accepted;
+      case 'ditolak':
+        return RequestStatus.declined;
+      default:
+        return RequestStatus.pending;
     }
-    return parts[0].substring(0, 2).toUpperCase();
+  }
+
+  static DateTime _parseDate(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return DateTime.now();
+    }
+
+    try {
+      return DateTime.parse(value);
+    } catch (_) {
+      return DateTime.now();
+    }
   }
 }
 
@@ -126,23 +165,10 @@ class StudentModel {
         return 'active';
     }
   }
-
-  static String _initialsFromName(String name) {
-    final parts = name
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((part) => part.isNotEmpty)
-        .toList();
-
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-
-    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-  }
 }
 
 class MeetingRequest {
-  final String id;
+  final String id; // data real: jadwal_id
   final String studentName;
   final String nim;
   final String major;
@@ -151,6 +177,12 @@ class MeetingRequest {
   final String meetingTime;
   final String description;
   final RequestStatus status;
+  final String mode;
+  final String pengajuRole;
+  final String pengajuName;
+  final String waktuMulai;
+  final String waktuSelesai;
+  final String? catatan;
 
   const MeetingRequest({
     required this.id,
@@ -162,15 +194,60 @@ class MeetingRequest {
     required this.meetingTime,
     required this.description,
     required this.status,
+    this.mode = 'offline',
+    this.pengajuRole = '-',
+    this.pengajuName = '-',
+    this.waktuMulai = '-',
+    this.waktuSelesai = '-',
+    this.catatan,
   });
 
-  String get initials {
-    final parts = studentName.trim().split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return parts[0].substring(0, 2).toUpperCase();
+  factory MeetingRequest.fromJadwalJson(Map<String, dynamic> json) {
+    final mahasiswaRaw = json['mahasiswa'];
+    final mahasiswa = mahasiswaRaw is Map
+        ? Map<String, dynamic>.from(mahasiswaRaw)
+        : <String, dynamic>{};
+
+    final pengajuRaw = json['pengaju'];
+    final pengaju = pengajuRaw is Map
+        ? Map<String, dynamic>.from(pengajuRaw)
+        : <String, dynamic>{};
+
+    final studentName = mahasiswa['nama']?.toString() ?? '-';
+    final tanggal = json['tanggal']?.toString();
+    final mulai = json['waktu_mulai']?.toString() ?? '-';
+    final selesai = json['waktu_selesai']?.toString() ?? '-';
+    final mode = json['mode']?.toString() ?? 'offline';
+    final catatan = json['catatan']?.toString();
+    final pengajuRole = pengaju['role']?.toString() ?? '-';
+    final pengajuName = pengaju['nama']?.toString() ?? '-';
+
+    return MeetingRequest(
+      id: json['jadwal_id']?.toString() ?? '',
+      studentName: studentName,
+      nim: mahasiswa['nim']?.toString() ?? '-',
+      // Response backend jadwal dosen belum membawa prodi, jadi jangan dipaksa.
+      major: 'Mahasiswa Bimbingan',
+      avatarUrl: '',
+      meetingDate: _parseDate(tanggal),
+      meetingTime: '${_formatTime(mulai)} - ${_formatTime(selesai)}',
+      description: catatan == null || catatan.trim().isEmpty
+          ? 'No note provided.'
+          : catatan,
+      status: _statusFromBackend(json['status_konfirmasi']?.toString()),
+      mode: mode,
+      pengajuRole: pengajuRole,
+      pengajuName: pengajuName,
+      waktuMulai: mulai,
+      waktuSelesai: selesai,
+      catatan: catatan,
+    );
   }
+
+  bool get isProposedByStudent => pengajuRole.toLowerCase() == 'mahasiswa';
+  bool get isProposedByDosen => pengajuRole.toLowerCase() == 'dosen';
+
+  String get initials => _initialsFromName(studentName);
 
   String get dayName {
     const days = [
@@ -202,4 +279,54 @@ class MeetingRequest {
     ];
     return '$dayName, ${meetingDate.day} ${months[meetingDate.month - 1]} ${meetingDate.year}';
   }
+
+  static RequestStatus _statusFromBackend(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'menunggu':
+        return RequestStatus.pending;
+      case 'dikonfirmasi':
+        return RequestStatus.accepted;
+      case 'ditolak':
+        return RequestStatus.declined;
+      default:
+        return RequestStatus.pending;
+    }
+  }
+
+  static DateTime _parseDate(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return DateTime.now();
+    }
+
+    try {
+      return DateTime.parse(value);
+    } catch (_) {
+      return DateTime.now();
+    }
+  }
+
+  static String _formatTime(String? value) {
+    if (value == null || value.trim().isEmpty) return '-';
+
+    final parts = value.split(':');
+    if (parts.length < 2) return value;
+
+    return '${parts[0].padLeft(2, '0')}:${parts[1].padLeft(2, '0')}';
+  }
+}
+
+String _initialsFromName(String name) {
+  final parts = name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((part) => part.isNotEmpty)
+      .toList();
+
+  if (parts.isEmpty) return '?';
+
+  if (parts.length == 1) {
+    return parts.first.substring(0, 1).toUpperCase();
+  }
+
+  return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
 }
