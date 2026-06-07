@@ -199,6 +199,87 @@ class DosenService {
     return _decodeResponse(response);
   }
 
+  Future<Map<String, dynamic>> updateProgresTA({
+    required int bimbinganId,
+    required double persentase,
+    required String statusProgress,
+    String? catatan,
+  }) async {
+    final body = <String, dynamic>{
+      'persentase': persentase,
+      'status_progress': statusProgress.trim(),
+      if (catatan != null && catatan.trim().isNotEmpty)
+        'catatan': catatan.trim(),
+    };
+
+    final response = await http.put(
+      _uri('/dosen/progres/$bimbinganId'),
+      headers: await _headers(json: true),
+      body: jsonEncode(body),
+    );
+
+    return _decodeResponse(response);
+  }
+
+  Future<Map<String, dynamic>> tambahChecklistProgress({
+    required int progressId,
+    required String namaItem,
+    bool tglSelesai = false,
+    String? tanggalSelesai,
+    String? catatan,
+  }) async {
+    final body = <String, dynamic>{
+      'nama_item': namaItem.trim(),
+      'tgl_selesai': tglSelesai,
+      if (tanggalSelesai != null && tanggalSelesai.trim().isNotEmpty)
+        'tanggal_selesai': tanggalSelesai.trim(),
+      if (catatan != null && catatan.trim().isNotEmpty)
+        'catatan': catatan.trim(),
+    };
+
+    final response = await http.post(
+      _uri('/dosen/progres/$progressId/checklist'),
+      headers: await _headers(json: true),
+      body: jsonEncode(body),
+    );
+
+    return _decodeResponse(response);
+  }
+
+  Future<Map<String, dynamic>> updateChecklistProgress({
+    required int checklistId,
+    required String namaItem,
+    required bool tglSelesai,
+    String? tanggalSelesai,
+    String? catatan,
+  }) async {
+    final body = <String, dynamic>{
+      'nama_item': namaItem.trim(),
+      'tgl_selesai': tglSelesai,
+      if (tanggalSelesai != null && tanggalSelesai.trim().isNotEmpty)
+        'tanggal_selesai': tanggalSelesai.trim(),
+      if (catatan != null && catatan.trim().isNotEmpty)
+        'catatan': catatan.trim(),
+    };
+
+    final response = await http.put(
+      _uri('/dosen/checklist/$checklistId'),
+      headers: await _headers(json: true),
+      body: jsonEncode(body),
+    );
+
+    return _decodeResponse(response);
+  }
+
+  Future<Map<String, dynamic>> hapusChecklistProgress(int checklistId) async {
+    final response = await http.delete(
+      _uri('/dosen/checklist/$checklistId'),
+      headers: await _headers(),
+    );
+
+    return _decodeResponse(response);
+  }
+
   Future<Map<String, dynamic>> getDokumenMahasiswa({
     required int bimbinganId,
     int perPage = 30,

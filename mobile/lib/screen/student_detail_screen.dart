@@ -5,6 +5,7 @@ import 'package:produk/model/models.dart';
 import 'package:produk/widgets/student_info_card.dart';
 import 'package:produk/widgets/student_menu_title.dart';
 import 'package:produk/features/dosen/view/dosen_student_documents_page.dart';
+import 'package:produk/features/dosen/view/dosen_student_progress_page.dart';
 
 class StudentDetailPage extends StatefulWidget {
   final StudentModel student;
@@ -94,6 +95,15 @@ class _StudentDetailPageState extends State<StudentDetailPage>
       context,
       MaterialPageRoute(
         builder: (_) => DosenStudentDocumentsPage(student: student),
+      ),
+    );
+  }
+
+  void _openProgressPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DosenStudentProgressPage(student: student),
       ),
     );
   }
@@ -456,17 +466,17 @@ class _StudentDetailPageState extends State<StudentDetailPage>
       children: [
         StudentMenuTile(
           title: 'Progress',
-          subtitle: 'View academic progress & history',
+          subtitle: 'View and update thesis progress',
           icon: Icons.trending_up_rounded,
           iconColor: const Color(0xFF6366F1),
-          onTap: () => _showSnackBar(context, 'Progress feature coming soon'),
+          onTap: _openProgressPage,
         ),
         StudentMenuTile(
-          title: 'Tasks',
-          subtitle: '${student.taskCompleted} of ${student.taskCount} completed',
+          title: 'Checklist',
+          subtitle: 'Manage thesis checklist items',
           icon: Icons.checklist_rounded,
           iconColor: const Color(0xFF22C55E),
-          onTap: () => _showSnackBar(context, 'Tasks feature coming soon'),
+          onTap: _openProgressPage,
         ),
         StudentMenuTile(
           title: 'Meetings',
