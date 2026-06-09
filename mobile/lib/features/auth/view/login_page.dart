@@ -258,107 +258,112 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF0D47A1);
+    final size = MediaQuery.of(context).size;
+    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3FAFF),
       body: SafeArea(
         child: Stack(
           children: [
-            Container(
-              width: double.infinity,
-              height: double.infinity,
-              color: const Color(0xFFEAF6FF),
+            const Positioned.fill(
+              child: ColoredBox(
+                color: Color(0xFFEAF6FF),
+              ),
             ),
-            Column(
-              children: [
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.12,
-                ),
-                Center(
-                  child: Container(
-                    width: 248,
-                    height: 74,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF4F8FC),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: const Color(0xFFBAC7F2),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: const Text(
-                      'Sign in',
-                      style: TextStyle(
-                        color: Color(0xFF2F49D1),
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+
+            _buildFloatingEducationIcons(),
+
+            // Top brand card
+            Positioned(
+              top: keyboardOpen ? 18 : size.height * 0.065,
+              left: 24,
+              right: 24,
+              child: _buildTopBrandCard(),
             ),
+
+            // Bottom login card
             Align(
               alignment: Alignment.bottomCenter,
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut,
                 width: double.infinity,
-                height: MediaQuery.of(context).size.height * 0.70,
-                padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+                height: size.height * (keyboardOpen ? 0.82 : 0.70),
+                padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(30),
+                    top: Radius.circular(32),
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.10),
-                      blurRadius: 20,
-                      offset: const Offset(0, -4),
+                      blurRadius: 24,
+                      offset: const Offset(0, -6),
                     ),
                   ],
                 ),
                 child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
                   child: Form(
                     key: _formKey,
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _buildFormHeader(),
+                        const SizedBox(height: 26),
+
                         _buildInputField(
                           controller: _emailController,
-                          hintText: 'Enter your username or email',
+                          labelText: 'Email',
+                          hintText: 'Enter your email',
+                          prefixIcon: Icons.alternate_email_rounded,
                           keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.email],
                           validator: (value) {
                             final text = value?.trim() ?? '';
                             if (text.isEmpty) {
                               return 'Email wajib diisi';
                             }
+
                             final emailRegex =
                                 RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
                             if (!emailRegex.hasMatch(text)) {
                               return 'Format email tidak valid';
                             }
+
                             return null;
                           },
                         ),
-                        const SizedBox(height: 20),
+
+                        const SizedBox(height: 18),
+
                         _buildInputField(
                           controller: _passwordController,
+                          labelText: 'Password',
                           hintText: 'Enter your password',
+                          prefixIcon: Icons.lock_outline_rounded,
                           obscureText: _obscurePassword,
+                          textInputAction: TextInputAction.done,
+                          autofillHints: const [AutofillHints.password],
+                          onFieldSubmitted: (_) {
+                            if (!_isLoading) {
+                              _handleLogin();
+                            }
+                          },
                           validator: (value) {
                             final text = value?.trim() ?? '';
                             if (text.isEmpty) {
                               return 'Password wajib diisi';
                             }
+
                             if (text.length < 6) {
                               return 'Password minimal 6 karakter';
                             }
+
                             return null;
                           },
                           suffixIcon: IconButton(
@@ -374,36 +379,45 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
 
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
+
                         Align(
-                          alignment: Alignment.centerLeft,
+                          alignment: Alignment.centerRight,
                           child: TextButton(
                             onPressed: _showForgotPasswordInfo,
                             style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 4,
+                              ),
+                              foregroundColor: const Color(0xFF2F49D1),
                             ),
                             child: const Text(
-                              'Forgot your password?',
+                              'Forgot password?',
                               style: TextStyle(
-                                color: Color(0xFF2F49D1),
                                 fontSize: 14,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 10),
+
+                        const SizedBox(height: 14),
+
                         SizedBox(
                           width: double.infinity,
-                          height: 52,
+                          height: 54,
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _handleLogin,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: primaryBlue,
                               foregroundColor: Colors.white,
+                              elevation: 0,
+                              disabledBackgroundColor:
+                                  primaryBlue.withOpacity(0.65),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(18),
                               ),
                             ),
                             child: _isLoading
@@ -418,31 +432,48 @@ class _LoginPageState extends State<LoginPage> {
                                 : const Text(
                                     'CONTINUE',
                                     style: TextStyle(
-                                      fontWeight: FontWeight.w700,
+                                      fontWeight: FontWeight.w800,
                                       fontSize: 16,
+                                      letterSpacing: 0.4,
                                     ),
                                   ),
                           ),
                         ),
-                        const SizedBox(height: 22),
-                        const Text(
-                          'or',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 22),
+
+                        const SizedBox(height: 24),
+
+                        _buildDividerWithText('or'),
+
+                        const SizedBox(height: 24),
+
                         if (kIsWeb)
                           LayoutBuilder(
                             builder: (context, constraints) {
-                              return SizedBox(
+                              return Container(
                                 width: double.infinity,
                                 height: 56,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: const Color(0xFFE0E0E0),
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.035),
+                                      blurRadius: 14,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
+                                ),
                                 child: Center(
                                   child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(18),
                                     child: Transform.scale(
                                       scaleX: 1.0,
-                                      scaleY: 1.18,
-                                      child: google_web_button.buildGoogleWebButton(
+                                      scaleY: 1.16,
+                                      child:
+                                          google_web_button.buildGoogleWebButton(
                                         width: constraints.maxWidth,
                                       ),
                                     ),
@@ -454,13 +485,16 @@ class _LoginPageState extends State<LoginPage> {
                         else
                           _socialButton(
                             label: 'Continue with Google',
-                            assetIconPath: 'assets/images/google_iconbgnew.png',
+                            assetIconPath:
+                                'assets/images/google_iconbgnew.png',
                             onTap: _isLoading ? () {} : _handleGoogleLogin,
                           ),
-                        const SizedBox(height: 18),
+
+                        const SizedBox(height: 16),
+
                         _socialButton(
-                          label: 'Continue with Learning',
-                          icon: Icons.school,
+                          label: 'Lanjutkan dengan Learning',
+                          icon: Icons.school_outlined,
                           onTap: _goToLearningPage,
                         ),
                       ],
@@ -475,46 +509,247 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  Widget _buildFloatingEducationIcons() {
+    return IgnorePointer(
+      child: Stack(
+        children: [
+          _floatingEducationIcon(
+            top: 24,
+            left: 26,
+            size: 46,
+            opacity: 0.08,
+            rotate: -0.22,
+          ),
+          _floatingEducationIcon(
+            top: 52,
+            right: 34,
+            size: 54,
+            opacity: 0.07,
+            rotate: 0.18,
+          ),
+          _floatingEducationIcon(
+            top: 136,
+            left: 58,
+            size: 38,
+            opacity: 0.055,
+            rotate: 0.28,
+          ),
+          _floatingEducationIcon(
+            top: 148,
+            right: 64,
+            size: 42,
+            opacity: 0.06,
+            rotate: -0.18,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _floatingEducationIcon({
+    double? top,
+    double? left,
+    double? right,
+    required double size,
+    required double opacity,
+    required double rotate,
+  }) {
+    return Positioned(
+      top: top,
+      left: left,
+      right: right,
+      child: Transform.rotate(
+        angle: rotate,
+        child: Icon(
+          Icons.school_outlined,
+          size: size,
+          color: const Color(0xFF2F49D1).withOpacity(opacity),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopBrandCard() {
+    return Center(
+      child: Container(
+        width: 268,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 22,
+          vertical: 20,
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF4F8FC).withOpacity(0.92),
+          borderRadius: BorderRadius.circular(26),
+          border: Border.all(
+            color: const Color(0xFFBAC7F2),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'TAssist',
+              style: TextStyle(
+                color: Color(0xFF2F49D1),
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.2,
+              ),
+            ),
+            SizedBox(height: 6),
+            Text(
+              'Sistem Bimbingan Tugas Akhir',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFF6D7A90),
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormHeader() {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Sign In',
+          style: TextStyle(
+            color: Color(0xFF172033),
+            fontSize: 26,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        SizedBox(height: 6),
+        Text(
+          'Masuk untuk melanjutkan bimbingan TA-mu.',
+          style: TextStyle(
+            color: Color(0xFF7A8496),
+            fontSize: 14.5,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDividerWithText(String text) {
+    return Row(
+      children: [
+        const Expanded(
+          child: Divider(
+            color: Color(0xFFE6E8EE),
+            thickness: 1,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Color(0xFF8A94A6),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const Expanded(
+          child: Divider(
+            color: Color(0xFFE6E8EE),
+            thickness: 1,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildInputField({
     required TextEditingController controller,
     required String hintText,
+    String? labelText,
+    IconData? prefixIcon,
     TextInputType keyboardType = TextInputType.text,
+    TextInputAction? textInputAction,
+    Iterable<String>? autofillHints,
     bool obscureText = false,
     Widget? suffixIcon,
     String? Function(String?)? validator,
+    ValueChanged<String>? onFieldSubmitted,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      autofillHints: autofillHints,
       obscureText: obscureText,
       validator: validator,
+      onFieldSubmitted: onFieldSubmitted,
+      style: const TextStyle(
+        color: Color(0xFF172033),
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+      ),
       decoration: InputDecoration(
+        labelText: labelText,
         hintText: hintText,
         filled: true,
-        fillColor: Colors.white,
+        fillColor: const Color(0xFFFBFDFF),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 18,
           vertical: 18,
         ),
+        prefixIcon: prefixIcon == null
+            ? null
+            : Icon(
+                prefixIcon,
+                color: const Color(0xFF7B8AA5),
+              ),
         suffixIcon: suffixIcon,
+        labelStyle: const TextStyle(
+          color: Color(0xFF7A8496),
+          fontWeight: FontWeight.w600,
+        ),
+        floatingLabelStyle: const TextStyle(
+          color: Color(0xFF2F49D1),
+          fontWeight: FontWeight.w700,
+        ),
+        hintStyle: const TextStyle(
+          color: Color(0xFFA3ACBA),
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: Color(0xFFE0E6F0)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: Color(0xFFE0E6F0)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFF2F49D1)),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(
+            color: Color(0xFF2F49D1),
+            width: 1.4,
+          ),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           borderSide: const BorderSide(color: Colors.red),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           borderSide: const BorderSide(color: Colors.red),
         ),
       ),
@@ -529,17 +764,26 @@ class _LoginPageState extends State<LoginPage> {
   }) {
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: Container(
           width: double.infinity,
           height: 56,
           padding: const EdgeInsets.symmetric(horizontal: 18),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE0E0E0)),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: const Color(0xFFE0E0E0),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.035),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -561,8 +805,8 @@ class _LoginPageState extends State<LoginPage> {
               Text(
                 label,
                 style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w700,
                   color: Colors.black87,
                 ),
               ),
